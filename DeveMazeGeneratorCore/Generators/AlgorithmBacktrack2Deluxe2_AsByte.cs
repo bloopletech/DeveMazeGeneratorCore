@@ -57,6 +57,7 @@ namespace DeveMazeGeneratorCore.Generators
                 }
                 else
                 {
+                    currentStep++;
                     var chosenDirection = random.Next(targetCount);
                     int countertje = 0;
 

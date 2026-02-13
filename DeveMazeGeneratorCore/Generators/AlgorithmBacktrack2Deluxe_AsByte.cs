@@ -37,6 +37,7 @@ namespace DeveMazeGeneratorCore.Generators
 
             while (stackje.Count != 0)
             {
+                currentStep++;
                 MazePoint cur = stackje.Peek();
 
                 bool validLeft = cur.X - 2 > 0 && !map[cur.X - 2, cur.Y];

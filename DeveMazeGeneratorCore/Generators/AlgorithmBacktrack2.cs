@@ -39,6 +39,7 @@ namespace DeveMazeGeneratorCore.Generators
 
             while (stackje.Count != 0)
             {
+                currentStep++;
                 MazePoint cur = stackje.Peek();
 
                 int targetCount = 0;
