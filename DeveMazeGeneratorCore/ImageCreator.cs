@@ -42,8 +42,6 @@ public static class ImageCreator
 
     public static Image<Argb32> CreateImage(Maze maze, MazePath path)
     {
-        var points = path.Points;
-
         var image = CreateImage(maze);
 
         var w = Stopwatch.StartNew();
@@ -57,7 +55,21 @@ public static class ImageCreator
         //    return first.Y - second.Y;
         //});
 
-        foreach(var point in points) image[point.X, point.Y] = Color.Lime;
+        image.ProcessPixelRows(rows =>
+        {
+            for(int y = 0; y < rows.Height; y++)
+            {
+                var row = rows.GetRowSpan(y);
+                for(int x = 0; x < row.Length; x++)
+                {
+                    if(path[x, y])
+                    {
+                        ref var pixel = ref row[x];
+                        pixel = Color.Lime;
+                    }
+                }
+            }
+        });
 
         w.Stop();
         Debug.WriteLine($"Solution image creation time: {w.Elapsed}");

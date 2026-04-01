@@ -10,9 +10,6 @@ namespace DeveMazeGeneratorCore;
 /// </summary>
 public abstract class Maze(int width, int height) : IMaze
 {
-    public static readonly char[] MagicHeader = ['D', 'E', 'V', 'E', 'M', 'A', 'Z', 'E'];
-    public const short Version = 1;
-
     public int Width => width;
     public int Height => height;
 
@@ -73,49 +70,5 @@ public abstract class Maze(int width, int height) : IMaze
         return stringBuilder.ToString();
     }
 
-    public static async Task<Maze> Read(Stream stream)
-    {
-        using var reader = new BinaryReader(stream);
-        var magic = reader.ReadChars(8);
-        if(!magic.SequenceEqual(MagicHeader)) throw new InvalidDataException("Magic header not present");
-
-        var version = reader.ReadInt16();
-        if(version != 1) throw new InvalidDataException($"Maze version is {version} but we only understand version 1");
-
-        var type = reader.ReadInt16();
-        if(type == ContiguousArrayMaze.TypeId)
-        {
-            var maze = new ContiguousArrayMaze(reader);
-            await maze.Read(reader);
-            return maze;
-        }
-        else
-        {
-            throw new InvalidDataException($"Unknown maze type {type}");
-        }
-    }
-
-    protected abstract Task Read(BinaryReader reader);
-
-    public static async Task<Maze> Load(string fileName)
-    {
-        using var fs = File.Open(fileName, FileMode.Open);
-        return await Read(fs);
-    }
-
-    public virtual async Task Write(Stream stream)
-    {
-        using var writer = new BinaryWriter(stream);
-        writer.Write(MagicHeader);
-        writer.Write(Version);
-        await Write(writer);
-    }
-
-    protected abstract Task Write(BinaryWriter writer);
-
-    public virtual async Task Save(string fileName)
-    {
-        using var fs = File.Open(fileName, FileMode.Create);
-        await Write(fs);
-    }
+    public abstract Task Write(BinaryWriter writer);
 }

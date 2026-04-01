@@ -41,12 +41,7 @@ public class BitArreintjeFastInnerMap : Maze
         }
     }
 
-    protected override Task Read(BinaryReader reader)
-    {
-        throw new NotImplementedException();
-    }
-
-    protected override Task Write(BinaryWriter writer)
+    public override Task Write(BinaryWriter writer)
     {
         throw new NotImplementedException();
     }

@@ -9,14 +9,17 @@ public class BitList
 
     private readonly BitArray array;
 
-    public BitList(int bitLength)
+    public BitList(int bitLength) : this(new BitArray(bitLength))
     {
-        array = new(bitLength);
     }
 
-    public BitList(BitList source)
+    public BitList(BitList source) : this(new BitArray(source.array))
     {
-        array = new(source.array);
+    }
+
+    private BitList(BitArray array)
+    {
+        this.array = array;
     }
 
     public bool this[int i]
@@ -28,30 +31,39 @@ public class BitList
         set => array[i] = value;
     }
 
-    public async Task Read(Stream stream)
+
+    public async Task Write(BinaryWriter writer)
     {
-        var rawArray = GetRawArray();
+        writer.Write(array.Length);
+        await writer.BaseStream.WriteAsync(GetArrayField(array));
+
+        //var rawArray = GetRawArray();
+        //await writer.BaseStream.WriteAsync(rawArray);
+        //for (var offset = 0; offset < rawArray.Length; offset += ChunkSize)
+        //{
+        //    var length = Math.Min(ChunkSize, rawArray.Length - 1 - offset);
+        //    await writer.BaseStream.WriteAsync(rawArray.AsMemory(offset, length));
+        //}
+    }
+
+    public static async Task<BitList> Read(BinaryReader reader)
+    {
+        var array = new BitArray(reader.ReadInt32());
+
+        var rawArray = GetArrayField(array);
         for(var offset = 0; offset < rawArray.Length;)
         {
             var length = Math.Min(ChunkSize, rawArray.Length - 1 - offset);
             if(length == 0) break;
-            var bytesRead = await stream.ReadAsync(rawArray.AsMemory(offset, length));
+            var bytesRead = await reader.BaseStream.ReadAsync(rawArray.AsMemory(offset, length));
             //if(bytesRead == 0) throw new InvalidOperationException("Stream ended too early");
             offset += bytesRead;
         }
+
+        return new BitList(array);
     }
 
-    public async Task Write(Stream stream)
-    {
-        var rawArray = GetRawArray();
-        for(var offset = 0; offset < rawArray.Length; offset += ChunkSize)
-        {
-            var length = Math.Min(ChunkSize, rawArray.Length - 1 - offset);
-            await stream.WriteAsync(rawArray.AsMemory(offset, length));
-        }
-    }
-
-    private ref byte[] GetRawArray() => ref GetArrayField(array);
+    //private ref byte[] GetRawArray() => ref GetArrayField(array);
 
     [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_array")]
     private extern static ref byte[] GetArrayField(BitArray @this);

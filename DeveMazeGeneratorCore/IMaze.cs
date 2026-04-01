@@ -10,5 +10,5 @@ public interface IMaze
     Maze Clone();
     void CloneInto(Maze mapTarget);
     string GenerateMapAsString();
-    Task Write(Stream stream);
+    Task Write(BinaryWriter writer);
 }

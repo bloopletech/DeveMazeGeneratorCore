@@ -6,20 +6,19 @@ public class ContiguousArrayMaze : Maze
 {
     public const short TypeId = 1;
 
-    private readonly ContiguousBitList list;
+    private readonly BitGrid grid;
 
-    public ContiguousArrayMaze(int width, int height) : base(width, height)
+    public ContiguousArrayMaze(int width, int height) : this(width, height, new(width, height))
     {
-        list = new(width, height);
     }
 
-    public ContiguousArrayMaze(ContiguousArrayMaze source) : base(source.Width, source.Height)
+    public ContiguousArrayMaze(ContiguousArrayMaze source) : this(source.Width, source.Height, new(source.grid))
     {
-        list = new(source.list);
     }
 
-    public ContiguousArrayMaze(BinaryReader reader) : this(reader.ReadInt32(), reader.ReadInt32())
+    private ContiguousArrayMaze(int width, int height, BitGrid grid) : base(width, height)
     {
+        this.grid = grid;
     }
 
     public override Maze Clone() => new ContiguousArrayMaze(this);
@@ -27,22 +26,25 @@ public class ContiguousArrayMaze : Maze
     public override bool this[int x, int y]
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => list[x, y];
+        get => grid[x, y];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => list[x, y] = value;
+        set => grid[x, y] = value;
     }
 
-    protected override async Task Read(BinaryReader reader)
-    {
-        await list.Read(reader);
-    }
-
-    protected override async Task Write(BinaryWriter writer)
+    public override async Task Write(BinaryWriter writer)
     {
         writer.Write(TypeId);
         writer.Write(Width);
         writer.Write(Height);
-        await list.Write(writer);
+        await grid.Write(writer);
+    }
+
+    public static async Task<ContiguousArrayMaze> Read(BinaryReader reader)
+    {
+        var width = reader.ReadInt32();
+        var height = reader.ReadInt32();
+        var grid = await BitGrid.Read(reader);
+        return new ContiguousArrayMaze(width, height, grid);
     }
 }

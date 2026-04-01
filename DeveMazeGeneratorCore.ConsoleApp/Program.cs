@@ -1,5 +1,6 @@
 ﻿using DeveMazeGeneratorCore;
 using DeveMazeGeneratorCore.ConsoleApp;
+using DeveMazeGeneratorCore.Serializers;
 
 var options = new Options(args);
 Maze? maze = null;
@@ -44,7 +45,7 @@ async Task Generate()
     mazeFileName = options.NextFilename($"{Environment.TickCount}.maze");
 
     maze = DeveMazeGeneratorCore.DeveMazeGeneratorCore.Generate(width, height, seed);
-    await maze.Save(mazeFileName);
+    await MazeSerializer.Save(mazeFileName, maze);
     Console.WriteLine($"Saved maze to {mazeFileName}");
 }
 
@@ -53,7 +54,7 @@ async Task Verify()
     if(maze == null)
     {
         mazeFileName = options.Next();
-        maze = await Maze.Load(mazeFileName);
+        maze = await MazeSerializer.Load(mazeFileName);
     }
 
     var result = Verifier.IsPerfectMaze(maze);
@@ -65,13 +66,13 @@ async Task Solve()
     if(maze == null)
     {
         mazeFileName = options.Next();
-        maze = await Maze.Load(mazeFileName);
+        maze = await MazeSerializer.Load(mazeFileName);
     }
 
     pathFileName = options.NextFilename(Path.ChangeExtension(mazeFileName, ".path")!);
 
     path = Solver.Solve(maze);
-    await path.Save(pathFileName);
+    await MazePathSerializer.Save(pathFileName, path);
 
     Console.WriteLine($"Saved solution to {pathFileName}");
 }
@@ -81,7 +82,7 @@ async Task MazeImage()
     if(maze == null)
     {
         mazeFileName = options.Next();
-        maze = await Maze.Load(mazeFileName);
+        maze = await MazeSerializer.Load(mazeFileName);
     }
 
     var imageFileName = options.NextFilename(Path.ChangeExtension(mazeFileName, ".png")!);
@@ -98,13 +99,13 @@ async Task PathImage()
     if(maze == null)
     {
         mazeFileName = options.Next();
-        maze = await Maze.Load(mazeFileName);
+        maze = await MazeSerializer.Load(mazeFileName);
     }
 
     if(path == null)
     {
         pathFileName = options.Next();
-        path = await MazePath.Load(pathFileName);
+        path = await MazePathSerializer.Load(pathFileName);
     }
 
     var imageFileName = options.NextFilename(Path.ChangeExtension(pathFileName, ".path.png")!);
