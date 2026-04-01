@@ -6,16 +6,16 @@ public class ContiguousArrayMaze : Maze
 {
     public const short TypeId = 1;
 
-    private readonly BitList store;
+    private readonly ContiguousBitList list;
 
     public ContiguousArrayMaze(int width, int height) : base(width, height)
     {
-        store = new(width * height);
+        list = new(width, height);
     }
 
     public ContiguousArrayMaze(ContiguousArrayMaze source) : base(source.Width, source.Height)
     {
-        store = new(source.store);
+        list = new(source.list);
     }
 
     public ContiguousArrayMaze(BinaryReader reader) : this(reader.ReadInt32(), reader.ReadInt32())
@@ -27,15 +27,15 @@ public class ContiguousArrayMaze : Maze
     public override bool this[int x, int y]
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => store[x + (y * Height)];
+        get => list[x, y];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => store[x + (y * Height)] = value;
+        set => list[x, y] = value;
     }
 
     protected override async Task Read(BinaryReader reader)
     {
-        await store.Read(reader.BaseStream);
+        await list.Read(reader);
     }
 
     protected override async Task Write(BinaryWriter writer)
@@ -43,6 +43,6 @@ public class ContiguousArrayMaze : Maze
         writer.Write(TypeId);
         writer.Write(Width);
         writer.Write(Height);
-        await store.Write(writer.BaseStream);
+        await list.Write(writer);
     }
 }

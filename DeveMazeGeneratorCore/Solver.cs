@@ -39,8 +39,8 @@ public static class Solver
         //start = end;
         //end = temp;
 
-        int width = maze.Width;
-        int height = maze.Height;
+        var width = maze.Width;
+        var height = maze.Height;
 
         var points = new List<MazePoint>()
         {
@@ -131,6 +131,8 @@ public static class Solver
             }
         }
 
-        return new MazePath(points.ToArray());
+        var path = new MazePath(width, height);
+        foreach(var point in points) path[point.X, point.Y] = true;
+        return path;
     }
 }

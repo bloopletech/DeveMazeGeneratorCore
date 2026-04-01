@@ -1,14 +1,34 @@
-﻿using DeveMazeGeneratorCore.Structures;
+﻿using System.Runtime.CompilerServices;
+using DeveMazeGeneratorCore.Mazes;
 
 namespace DeveMazeGeneratorCore;
 
-public class MazePath(MazePoint[] points)
+public class MazePath
 {
     public static readonly char[] MagicHeader = ['D', 'E', 'V', 'E', 'P', 'A', 'T', 'H'];
     public const short Version = 1;
     public const short TypeId = 1;
 
-    public MazePoint[] Points => points;
+    private readonly ContiguousBitList list;
+
+    public MazePath(int width, int height)
+    {
+        list = new(width, height);
+    }
+
+    public MazePath(BinaryReader reader)
+    {
+        list = new(reader);
+    }
+
+    public bool this[int x, int y]
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => list[x, y];
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set => list[x, y] = value;
+    }
 
     public void Highlight()
     {
@@ -21,19 +41,18 @@ public class MazePath(MazePoint[] points)
         //}
     }
 
+    public async Task Read(BinaryReader reader)
+    {
+        await list.Read(reader);
+    }
+
     public async Task Write(Stream stream)
     {
         using var writer = new BinaryWriter(stream);
         writer.Write(MagicHeader);
         writer.Write(Version);
         writer.Write(TypeId);
-
-        writer.Write(points.Length);
-        foreach(var point in points)
-        {
-            writer.Write(point.X);
-            writer.Write(point.Y);
-        }
+        await list.Write(writer);
     }
 
     public async Task Save(string fileName)
@@ -42,7 +61,7 @@ public class MazePath(MazePoint[] points)
         await Write(fs);
     }
 
-    public static MazePath Read(Stream stream)
+    public static async Task<MazePath> Read(Stream stream)
     {
         using var reader = new BinaryReader(stream);
         var magic = reader.ReadChars(8);
@@ -54,15 +73,14 @@ public class MazePath(MazePoint[] points)
         var type = reader.ReadInt16();
         if(type != TypeId) throw new InvalidDataException($"Unknown path type {type}");
 
-        var points = new MazePoint[reader.ReadInt32()];
-        for(var i = 0; i < points.Length; i++) points[i].Set(reader.ReadInt32(), reader.ReadInt32());
-
-        return new MazePath(points);
+        var path = new MazePath(reader);
+        await path.Read(reader);
+        return path;
     }
 
     public static async Task<MazePath> Load(string fileName)
     {
         using var fs = File.Open(fileName, FileMode.Open);
-        return Read(fs);
+        return await Read(fs);
     }
 }
