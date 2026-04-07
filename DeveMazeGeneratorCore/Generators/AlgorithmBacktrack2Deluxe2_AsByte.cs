@@ -15,7 +15,7 @@ public class AlgorithmBacktrack2Deluxe2_AsByte(IMaze maze, Random random)
         int width = maze.Width - 1;
         int height = maze.Height - 1;
 
-        var stack = new Stack<MazePoint>();
+        var stack = new ContiguousBacktrackStack<MazePoint>();
         stack.Push(new(1, 1));
         maze[1, 1] = true;
 

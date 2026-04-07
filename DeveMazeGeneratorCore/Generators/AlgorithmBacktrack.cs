@@ -16,7 +16,7 @@ public class AlgorithmBacktrack(IMaze maze, Random random) : IAlgorithm
 
         var capacityEstimate = Convert.ToInt32(Math.Ceiling(width * height * 0.05));
 
-        var stack = new Stack<MazePoint>(capacityEstimate);
+        var stack = new ContiguousBacktrackStack<MazePoint>(capacityEstimate);
         stack.Push(new(1, 1));
         maze[1, 1] = true;
 
