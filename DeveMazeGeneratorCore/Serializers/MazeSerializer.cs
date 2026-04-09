@@ -33,9 +33,9 @@ public class MazeSerializer
         if(version != 1) throw new InvalidDataException($"Maze version is {version} but we only understand version 1");
 
         var type = reader.ReadInt16();
-        if(type == ContiguousArrayMaze.TypeId)
+        if(type == ContiguousBitGridMaze.TypeId)
         {
-            var maze = await ContiguousArrayMaze.Read(reader);
+            var maze = await ContiguousBitGridMaze.Read(reader);
             reader.BaseStream.EnsureCompleted();
             return maze;
         }

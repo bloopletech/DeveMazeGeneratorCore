@@ -7,7 +7,7 @@ public static class DeveMazeGeneratorCore
 {
     public static IMaze Generate(int width, int height, int? seed = null)
     {
-        var maze = new ContiguousArrayMaze(width, height);
+        var maze = new ContiguousBitGridMaze(width, height);
         var random = seed != null ? new Random(seed.Value) : new Random();
 
         var algorithm = new AlgorithmBacktrack(maze, random);
@@ -18,7 +18,7 @@ public static class DeveMazeGeneratorCore
 
     public static IMaze BenchmarkBaseline()
     {
-        var maze = new ContiguousArrayMaze(BenchmarkSize, BenchmarkSize);
+        var maze = new ContiguousBitGridMaze(BenchmarkSize, BenchmarkSize);
         var random = new Random(BenchmarkSeed);
 
         var algorithm = new AlgorithmBacktrack(maze, random);
@@ -29,7 +29,7 @@ public static class DeveMazeGeneratorCore
 
     public static IMaze BenchmarkFast()
     {
-        var maze = new ContiguousArrayMaze(BenchmarkSize, BenchmarkSize);
+        var maze = new ContiguousBitGridMaze(BenchmarkSize, BenchmarkSize);
         var random = new Random(BenchmarkSeed);
 
         var algorithm = new AlgorithmBacktrack2Deluxe2_AsByte(maze, random);
