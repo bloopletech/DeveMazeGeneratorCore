@@ -1,14 +1,26 @@
 using DeveMazeGeneratorCore.Generators;
 using DeveMazeGeneratorCore.Mazes;
+using DeveMazeGeneratorCore.RNG;
 
 namespace DeveMazeGeneratorCore;
 
 public static class DeveMazeGeneratorCore
 {
+    public static IMaze Generate(int width, int height, Xoshiro256RandomSeed seed)
+    {
+        var maze = new ContiguousArrayMaze(width, height);
+        var random = new Xoshiro256Random(seed);
+
+        var algorithm = new AlgorithmBacktrack(maze, random);
+        algorithm.Generate();
+
+        return maze;
+    }
+
     public static IMaze Generate(int width, int height, int? seed = null)
     {
         var maze = new ContiguousArrayMaze(width, height);
-        var random = seed != null ? new Random(seed.Value) : new Random();
+        IRandom random = seed.HasValue ? new NetRandom(seed.Value) : new Xoshiro256Random();
 
         var algorithm = new AlgorithmBacktrack(maze, random);
         algorithm.Generate();
@@ -19,7 +31,7 @@ public static class DeveMazeGeneratorCore
     public static IMaze BenchmarkBaseline()
     {
         var maze = new ContiguousArrayMaze(BenchmarkSize, BenchmarkSize);
-        var random = new Random(BenchmarkSeed);
+        var random = new NetRandom(BenchmarkSeed);
 
         var algorithm = new AlgorithmBacktrack(maze, random);
         algorithm.Generate();
@@ -30,7 +42,7 @@ public static class DeveMazeGeneratorCore
     public static IMaze BenchmarkFast()
     {
         var maze = new ContiguousArrayMaze(BenchmarkSize, BenchmarkSize);
-        var random = new Random(BenchmarkSeed);
+        var random = new Xoshiro256Random(new Xoshiro256RandomSeed(BenchmarkSeed, 0, 0, 0));
 
         var algorithm = new AlgorithmBacktrack2Deluxe2_AsByte(maze, random);
         algorithm.Generate();

@@ -1,6 +1,6 @@
 using DeveMazeGeneratorCore.Generators;
 using DeveMazeGeneratorCore.Mazes;
-using System;
+using DeveMazeGeneratorCore.RNG;
 using System.IO;
 using System.Threading.Tasks;
 using Xunit;
@@ -22,7 +22,7 @@ public class MazeSamples
             }
         }
 
-        var random = new Random(1337);
+        var random = new NetRandom(1337);
 
         var algorithm = new AlgorithmBacktrack(maze, random);
         algorithm.Generate();

@@ -1,11 +1,12 @@
 using System.Runtime.CompilerServices;
 using DeveMazeGeneratorCore.Extensions;
 using DeveMazeGeneratorCore.Mazes;
+using DeveMazeGeneratorCore.RNG;
 using DeveMazeGeneratorCore.Structures;
 
 namespace DeveMazeGeneratorCore.Generators;
 
-public class AlgorithmBacktrack2Deluxe2_AsByte(IMaze maze, Random random)
+public class AlgorithmBacktrack2Deluxe2_AsByte(IMaze maze, IRandom random)
 {
     public void Generate()
     {
