@@ -24,7 +24,7 @@ public static class DeveMazeGeneratorCore
         var maze = new ContiguousArrayMaze(width, height);
         var random = seed.HasValue ? new Random(seed.Value) : new Random();
         //IRandom random = seed.HasValue ? new NetRandom(seed.Value) : new Xoshiro256Random();
-        var rseed = random.GetSeedReflection();
+        var rseed = random.GetSeed();
 
         var algorithm = new AlgorithmBacktrack(maze, random);
         algorithm.Generate();
