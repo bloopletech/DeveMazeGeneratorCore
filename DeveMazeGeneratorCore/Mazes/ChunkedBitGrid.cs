@@ -11,8 +11,11 @@ public class ChunkedBitGrid
 {
     public readonly int width;
     public readonly int height;
-    private SafeFileHandle handle;
-    private long fileStartOffset;
+    private readonly MemoryMappedFile file;
+    private readonly long offset;
+    private readonly long size;
+
+
     private int bitLength;
     private uint chunkBitSize;
     private uint lastChunkBitLength;
@@ -27,22 +30,28 @@ public class ChunkedBitGrid
     //{
     //}
 
-    public ChunkedBitGrid(int width, int height, string path, long fileOffset)
+    public ChunkedBitGrid(int width, int height, MemoryMappedFile file, long offset, long size)
     {
         this.width = width;
         this.height = height;
-        handle = File.OpenHandle(path, FileMode.Open, FileAccess.ReadWrite);
+        this.file = file;
+        this.offset = offset;
+        this.size = size;
+
+        //if(length != array.Length)
+        //{
+        //    throw new ArgumentException($"(width {width} * height {height}) {length} != array length {array.Length}");
+        //}
 
         bitLength = width * height; // number of bits
 
         var chunkByteSize = 64 * 1024 * 1024;
-        chunkBitSize = (uint)(8 * chunkByteSize); // bits
 
-        (uint chunks, lastChunkBitLength) = Math.DivRem((uint)bitLength, chunkBitSize);
-        var hasExtraChunk = lastChunkBitLength > 0;
+        (long chunks, long lastChunkByteLength) = Math.DivRem(size, chunkByteSize);
+        var hasExtraChunk = lastChunkByteLength > 0;
 
         arrays = new BitArrayHolder[chunks + (hasExtraChunk ? 1 : 0)];
-        var chunkStartOffset = fileOffset;
+        var chunkStartOffset = offset;
         for(var i = 0; i < chunks; i++)
         {
             arrays[i] = new BitArrayHolder((int)chunkBitSize, handle, chunkStartOffset);
@@ -50,10 +59,7 @@ public class ChunkedBitGrid
         }
         if(hasExtraChunk) arrays[chunks] = new BitArrayHolder((int)lastChunkBitLength, handle, chunkStartOffset);
 
-        //if(length != array.Length)
-        //{
-        //    throw new ArgumentException($"(width {width} * height {height}) {length} != array length {array.Length}");
-        //}
+
 
 
     }
@@ -115,6 +121,11 @@ public class ChunkedBitGrid
         array.LastUsedAt = DateTimeOffset.Now.ToUnixTimeMilliseconds();
     }
 
+    public void Finish()
+    {
+        foreach(var array in arrays.Where(a => !a.IsEmpty)) array.Evict();
+    }
+
     public void Write(Stream stream)
     {
         using var compressor = stream.Compressor();
@@ -136,11 +147,13 @@ public class ChunkedBitGrid
         writer.Write(height);
     }
 
-    public static ChunkedBitGrid Read(Stream stream)
+    public static ChunkedBitGrid Read(MemoryMappedFile file, long fileOffset)
     {
-        using var decompressor = stream.Decompressor();
-        using var reader = decompressor.Reader();
-        return new ChunkedBitGrid(reader.ReadInt32(), reader.ReadInt32(), BitArray.Read(decompressor));
+        using var accessor = file.CreateViewAccessor(fileOffset, 12);
+        var width = accessor.ReadInt32(0);
+        var height = accessor.ReadInt32(4);
+        var byteLength = accessor.ReadInt32(8);
+        return new(width, height, file, fileOffset + 12, byteLength);
     }
 
     public static async Task<ChunkedBitGrid> ReadAsync(Stream stream)
