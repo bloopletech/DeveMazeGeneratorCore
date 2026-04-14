@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using DeveMazeGeneratorCore.Extensions;
+using Microsoft.Win32.SafeHandles;
 
 namespace DeveMazeGeneratorCore.Mazes;
 
@@ -10,12 +11,13 @@ public class ChunkedBitGrid
 {
     public readonly int width;
     public readonly int height;
-    private MemoryMappedFile file;
+    private SafeFileHandle handle;
     private long fileStartOffset;
     private int bitLength;
     private uint chunkBitSize;
     private uint lastChunkBitLength;
     private readonly BitArrayHolder[] arrays;
+    private int active;
 
     //public ChunkedBitGrid(int width, int height) : this(width, height, new(width * height))
     //{
@@ -25,13 +27,11 @@ public class ChunkedBitGrid
     //{
     //}
 
-    public ChunkedBitGrid(int width, int height, MemoryMappedFile file, long fileStartOffset)
+    public ChunkedBitGrid(int width, int height, string path, long fileOffset)
     {
         this.width = width;
         this.height = height;
-        this.file = file;
-        this.fileStartOffset = fileStartOffset;
-
+        handle = File.OpenHandle(path, FileMode.Open, FileAccess.ReadWrite);
 
         bitLength = width * height; // number of bits
 
@@ -42,13 +42,13 @@ public class ChunkedBitGrid
         var hasExtraChunk = lastChunkBitLength > 0;
 
         arrays = new BitArrayHolder[chunks + (hasExtraChunk ? 1 : 0)];
-        var chunkStartOffset = fileStartOffset;
+        var chunkStartOffset = fileOffset;
         for(var i = 0; i < chunks; i++)
         {
-            arrays[i] = new BitArrayHolder((int)chunkBitSize, file, chunkStartOffset, BitArrayExtensions.GetAlignedByteArrayLength((int)chunkBitSize));
+            arrays[i] = new BitArrayHolder((int)chunkBitSize, handle, chunkStartOffset);
             chunkStartOffset += chunkByteSize;
         }
-        if(hasExtraChunk) arrays[chunks] = new BitArrayHolder((int)lastChunkBitLength, file, chunkStartOffset, BitArrayExtensions.GetAlignedByteArrayLength((int)lastChunkBitLength));
+        if(hasExtraChunk) arrays[chunks] = new BitArrayHolder((int)lastChunkBitLength, handle, chunkStartOffset);
 
         //if(length != array.Length)
         //{
@@ -77,7 +77,9 @@ public class ChunkedBitGrid
             }
 
             (uint chunk, uint chunkOffset) = Math.DivRem((uint)index, chunkBitSize);
-            return arrays[chunk].Array[(int)chunkOffset];
+            var array = arrays[chunk];
+            Touch(ref array);
+            return array.Array[(int)chunkOffset];
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -91,8 +93,26 @@ public class ChunkedBitGrid
             }
 
             (uint chunk, uint chunkOffset) = Math.DivRem((uint)index, chunkBitSize);
-            arrays[chunk].Array[(int)chunkOffset] = value;
+            var array = arrays[chunk];
+            Touch(ref array);
+            array.Array[(int)chunkOffset] = value;
         }
+    }
+
+    private void Touch(ref BitArrayHolder array)
+    {
+        if(array.IsEmpty)
+        {
+            IEnumerable<BitArrayHolder> active;
+            do
+            {
+                active = arrays.Where(a => !a.IsEmpty);
+                var oldest = active.MinBy(a => a.LastUsedAt)!;
+                oldest.Evict();
+            }
+            while(active.Count() > 10);
+        }
+        array.LastUsedAt = DateTimeOffset.Now.ToUnixTimeMilliseconds();
     }
 
     public void Write(Stream stream)

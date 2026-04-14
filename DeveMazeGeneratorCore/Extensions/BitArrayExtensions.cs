@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using Microsoft.Win32.SafeHandles;
 
 namespace DeveMazeGeneratorCore.Extensions;
 
@@ -12,6 +13,8 @@ public static class BitArrayExtensions
     extension(BitArray array)
     {
         private ref byte[] GetArray() => ref GetArrayField(array);
+
+        public int ByteLength() => array.GetArray().Length;
 
         public void Write(Stream stream)
         {
@@ -27,14 +30,14 @@ public static class BitArrayExtensions
             await writer.BaseStream.WriteAsync(array.GetArray());
         }
 
-        public void WriteRaw(Stream stream)
+        public void Write(SafeFileHandle handle, long offset)
         {
-            stream.Write(array.GetArray());
+            RandomAccess.Write(handle, array.GetArray(), offset);
         }
 
-        public async Task WriteRawAsync(Stream stream)
+        public async Task WriteAsync(SafeFileHandle handle, long offset)
         {
-            await stream.WriteAsync(array.GetArray());
+            await RandomAccess.WriteAsync(handle, array.GetArray(), offset);
         }
 
         public static BitArray Read(Stream stream)
@@ -53,17 +56,17 @@ public static class BitArrayExtensions
             return result;
         }
 
-        public static BitArray ReadRaw(Stream stream, int bitLength)
+        public static BitArray Read(int bitLength, SafeFileHandle handle, long offset)
         {
             var result = new BitArray(bitLength);
-            stream.ReadExactly(result.GetArray());
+            RandomAccess.ReadExactly(handle, result.GetArray(), offset);
             return result;
         }
 
-        public static async Task<BitArray> ReadRawAsync(Stream stream, int bitLength)
+        public static async Task<BitArray> ReadAsync(int bitLength, SafeFileHandle handle, long offset)
         {
             var result = new BitArray(bitLength);
-            await stream.ReadExactlyAsync(result.GetArray());
+            await RandomAccess.ReadExactlyAsync(handle, result.GetArray(), offset);
             return result;
         }
 

@@ -1,10 +1,10 @@
 using System.Collections;
-using System.IO.MemoryMappedFiles;
 using DeveMazeGeneratorCore.Extensions;
+using Microsoft.Win32.SafeHandles;
 
 namespace DeveMazeGeneratorCore.Mazes;
 
-public class BitArrayHolder(int bitLength, MemoryMappedFile file, long fileStartOffset, long fileChunkLength)
+public class BitArrayHolder(int bitLength, SafeFileHandle handle, long fileOffset)
 {
     private BitArray? array;
 
@@ -12,17 +12,23 @@ public class BitArrayHolder(int bitLength, MemoryMappedFile file, long fileStart
     {
         get
         {
-            using var stream = file.CreateViewStream(fileStartOffset, fileChunkLength);
-            array ??= BitArray.ReadRaw(stream, bitLength);
+            array ??= BitArray.Read(bitLength, handle, fileOffset);
             return array;
         }
     }
 
+    public bool IsEmpty => array == null;
+
+    public long LastUsedAt { get; set; }
+
     public void Evict()
     {
         if(array == null) return;
-        using var stream = file.CreateViewStream(fileStartOffset, fileChunkLength);
-        array.WriteRaw(stream);
+        var currentLength = RandomAccess.GetLength(handle);
+        var requiredLength = fileOffset + array.ByteLength();
+        if(currentLength < requiredLength) RandomAccess.SetLength(handle, requiredLength);
+        array.Write(handle, fileOffset);
         array = null;
+        LastUsedAt = long.MaxValue;
     }
 }
