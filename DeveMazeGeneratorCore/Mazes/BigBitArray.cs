@@ -7,20 +7,43 @@ using DeveMazeGeneratorCore.Extensions;
 namespace DeveMazeGeneratorCore.Mazes;
 
 // Based on https://github.com/dotnet/runtime/blob/081d220c0a773ffb7c6bea6b48727833576a65ef/src/libraries/System.Private.CoreLib/src/System/Collections/BitArray.cs
-public class BigBitArray
+public class BigBitArray : IDisposable
 {
+    private const int ChunkByteSize = 256 * 1024 * 1024;
     private const int BitsPerByte = 8; // sizeof(byte) * 8
 
-    private byte[] _array;
+    private Overlay[] _arrays;
 
     private int _bitLength;
+    private bool _disposed;
 
-    public BigBitArray(int length)
+    //public BigBitArray(int length)
+    //{
+    //    ArgumentOutOfRangeException.ThrowIfNegative(length);
+
+    //    _array = AllocateByteArray(length);
+    //    _bitLength = length;
+    //}
+
+    public BigBitArray(MemoryMappedFile file, long offset)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(length);
+        //read own length from first 4 bytes
+        using var lengthAccessor = file.CreateViewAccessor(offset, offset + sizeof(int));
+        _bitLength = lengthAccessor.ReadInt32(0);
 
-        _array = AllocateByteArray(length);
-        _bitLength = length;
+        var byteLength = GetByteArrayLengthFromBitLength(_bitLength);
+        // TODO: Find out why BitArray casts to uint etc
+        var (chunkCount, lastChunkSize) = Math.DivRem(byteLength, ChunkByteSize);
+
+        _arrays = new Overlay[chunkCount + (lastChunkSize > 0 ? 1 : 0)];
+
+        var chunkStart = offset + sizeof(int);
+        for(var i = 0; i < chunkCount; i++)
+        {
+            _arrays[i] = new Overlay(file.CreateViewAccessor(chunkStart, ChunkByteSize));
+            chunkStart += ChunkByteSize;
+        }
+        if(lastChunkSize > 0) _arrays[^1] = new Overlay(file.CreateViewAccessor(chunkStart, lastChunkSize));
     }
 
     public bool this[int index]
@@ -68,6 +91,24 @@ public class BigBitArray
     /// <summary>Creates a shallow copy of the <see cref="BitArray"/>.</summary>
     //public object Clone() => new BitArray(this);
 
+    protected virtual void Dispose(bool disposing)
+    {
+        if(!_disposed)
+        {
+            if(disposing)
+            {
+                foreach(var array in _arrays) array.Dispose();
+            }
+
+            _disposed = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
 
     public void Write(Stream stream)
     {
@@ -115,7 +156,6 @@ public class BigBitArray
         accessor.ReadArray(0, result._array, 0, result._array.Length);
         return result;
     }
-
 
     /// <summary>Determines the number of <see cref="byte"/>s required to store <paramref name="bitLength"/> bits.</summary>
     private static int GetByteArrayLengthFromBitLength(int bitLength)
