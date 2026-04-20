@@ -10,7 +10,6 @@ public class BigBitGridMaze : IMaze
     private readonly int width;
     private readonly int height;
     private readonly BigBitGrid grid;
-    private bool disposed;
 
     //public BigBitGridMaze(BigBitGridMaze source) : this(source.Width, source.Height, new(source.grid))
     //{
@@ -42,10 +41,6 @@ public class BigBitGridMaze : IMaze
         RandomAccess.Write(handle, ref offset, width);
         RandomAccess.Write(handle, ref offset, height);
         grid = new BigBitGrid(handle, offset, width, height);
-    }
-
-    public BigBitGridMaze(FileStream stream, int width, int height) : this(stream.SafeFileHandle, stream.Position, width, height)
-    {
     }
 
     public Stream Stream => stream;
