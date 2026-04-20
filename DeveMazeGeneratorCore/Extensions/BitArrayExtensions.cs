@@ -75,17 +75,17 @@ public static class BitArrayExtensions
         //    return result;
         //}
 
-        public static BitArray Read(SafeFileHandle handle, long offset, long size, int bitLength)
+        public static BitArray Read(SafeFileHandle handle, long offset, long size)
         {
-            var result = new BitArray(bitLength);
+            var result = new BitArray((int)size * 8);
             var rawArray = result.GetArray();
             RandomAccess.ReadExactly(handle, rawArray, offset);
             return result;
         }
 
-        public static async Task<BitArray> ReadAsync(SafeFileHandle handle, long offset, long size, int bitLength)
+        public static async Task<BitArray> ReadAsync(SafeFileHandle handle, long offset, long size)
         {
-            var result = new BitArray(bitLength);
+            var result = new BitArray((int)size * 8);
             var rawArray = result.GetArray();
             await RandomAccess.ReadExactlyAsync(handle, rawArray, offset);
             return result;

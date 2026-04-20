@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using DeveMazeGeneratorCore.Extensions;
+using Microsoft.Win32.SafeHandles;
 
 namespace DeveMazeGeneratorCore.Mazes;
 
@@ -9,73 +10,62 @@ public class BigBitGrid
     public readonly int height;
     private readonly BigBitArray array;
 
-    public BigBitGrid(int width, int height) : this(width, height, new(width * height))
+    public BigBitGrid(SafeFileHandle handle, long offset)
     {
-    }
-
-    public BigBitGrid(BigBitGrid source) : this(source.width, source.height, new(source.array))
-    {
-    }
-
-    private BigBitGrid(int width, int height, BigBitArray array)
-    {
-        var length = width * height;
-        if(length != array.Length)
-        {
-            throw new ArgumentException($"(width {width} * height {height}) {length} != array length {array.Length}");
-        }
-
+        //read the width from the handle
         this.width = width;
+        //read the height from the handle
         this.height = height;
-        this.array = array;
+        this.array = new BigBitArray(handle, offset, (long)width * height);
+    }
+
+    public BigBitGrid(SafeFileHandle handle, long offset, int width, int height)
+    {
+        //write the width to the handle
+        this.width = width;
+        //write the height to the handle
+        this.height = height;
+        this.array = new BigBitArray(handle, offset, (long)width * height);
     }
 
     public int Width => width;
     public int Height => height;
 
-    public BigBitGrid Clone() => new(this);
+    //public BigBitGrid Clone() => new(this);
 
     public bool this[int x, int y]
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => array[x + (y * height)];
+        get => array[x + ((long)y * height)];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => array[x + (y * height)] = value;
+        set => array[x + ((long)y * height)] = value;
     }
 
-    public void Write(Stream stream)
+    public void Write()
     {
-        using var compressor = stream.Compressor();
-        WriteHeader(compressor);
-        array.Write(compressor);
+        array.Write();
     }
 
-    public async Task WriteAsync(Stream stream)
+    public async Task WriteAsync()
     {
-        using var compressor = stream.Compressor();
-        WriteHeader(compressor);
-        await array.WriteAsync(compressor);
+        await array.WriteAsync();
     }
 
-    private void WriteHeader(Stream stream)
+    private void WriteHeader(FileStream stream)
     {
         using var writer = stream.Writer();
         writer.Write(width);
         writer.Write(height);
     }
 
-    public static BigBitGrid Read(Stream stream)
+    public static BigBitGrid Read(FileStream stream)
     {
-        using var decompressor = stream.Decompressor();
-        using var reader = decompressor.Reader();
-        return new BigBitGrid(reader.ReadInt32(), reader.ReadInt32(), BigBitArray.Read(decompressor));
+        return new BigBitGrid(stream.SafeFileHandle, stream.Position);
     }
 
-    public static async Task<BigBitGrid> ReadAsync(Stream stream)
+    public static async Task<BigBitGrid> ReadAsync(FileStream stream)
     {
-        using var decompressor = stream.Decompressor();
-        using var reader = decompressor.Reader();
-        return new BigBitGrid(reader.ReadInt32(), reader.ReadInt32(), await BigBitArray.ReadAsync(decompressor));
+        return new BigBitGrid(stream.SafeFileHandle, stream.Position);
     }
 }
