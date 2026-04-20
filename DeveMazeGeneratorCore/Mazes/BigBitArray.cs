@@ -121,6 +121,7 @@ public class BigBitArray
 
     private void Sync(BitArrayHolder chunk)
     {
+        chunk.LastUsedAt = Environment.TickCount64;
         if(chunk.IsPresent) return;
         do
         {
