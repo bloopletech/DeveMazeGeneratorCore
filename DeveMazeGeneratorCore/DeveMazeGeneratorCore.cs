@@ -25,6 +25,32 @@ public static class DeveMazeGeneratorCore
         return maze;
     }
 
+    public static IMaze Generate(FileStream stream, int width, int height, int? seed = null) => Generate(
+        MazeType.BigBitGridMaze,
+        AlgorithmType.Backtrack,
+        stream,
+        width,
+        height,
+        seed);
+
+    public static IMaze Generate(
+        MazeType mazeType,
+        AlgorithmType algorithmType,
+        FileStream stream,
+        int width,
+        int height,
+        int? seed = null)
+    {
+        var maze = IMaze.Create(mazeType, stream, width, height);
+        var random = seed.HasValue ? new Random(seed.Value) : new Random();
+        var realSeed = random.GetSeed();
+
+        var algorithm = IAlgorithm.Create(algorithmType, maze, random);
+        algorithm.Generate();
+
+        return maze;
+    }
+
     public static IMaze BenchmarkBaseline()
     {
         return Generate(MazeType.BitGridMaze, AlgorithmType.Backtrack, BenchmarkSize, BenchmarkSize, BenchmarkSeed);

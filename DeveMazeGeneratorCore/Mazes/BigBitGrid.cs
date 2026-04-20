@@ -4,7 +4,7 @@ using Microsoft.Win32.SafeHandles;
 
 namespace DeveMazeGeneratorCore.Mazes;
 
-public class BigBitGrid
+public class BigBitGrid : IDisposable, IAsyncDisposable
 {
     public readonly int width;
     public readonly int height;
@@ -12,20 +12,26 @@ public class BigBitGrid
 
     public BigBitGrid(SafeFileHandle handle, long offset)
     {
-        //read the width from the handle
-        this.width = width;
-        //read the height from the handle
-        this.height = height;
-        this.array = new BigBitArray(handle, offset, (long)width * height);
+        width = RandomAccess.ReadInt32(handle, ref offset);
+        height = RandomAccess.ReadInt32(handle, ref offset);
+        array = new BigBitArray(handle, offset, (long)width * height);
+    }
+
+    public BigBitGrid(FileStream stream) : this(stream.SafeFileHandle, stream.Position)
+    {
     }
 
     public BigBitGrid(SafeFileHandle handle, long offset, int width, int height)
     {
-        //write the width to the handle
         this.width = width;
-        //write the height to the handle
         this.height = height;
-        this.array = new BigBitArray(handle, offset, (long)width * height);
+        RandomAccess.Write(handle, ref offset, width);
+        RandomAccess.Write(handle, ref offset, height);
+        array = new BigBitArray(handle, offset, (long)width * height);
+    }
+
+    public BigBitGrid(FileStream stream, int width, int height) : this(stream.SafeFileHandle, stream.Position, width, height)
+    {
     }
 
     public int Width => width;
@@ -42,21 +48,16 @@ public class BigBitGrid
         set => array[x + ((long)y * height)] = value;
     }
 
-    public void Write()
+    public void Dispose()
     {
         array.Write();
+        GC.SuppressFinalize(this);
     }
 
-    public async Task WriteAsync()
+    public async ValueTask DisposeAsync()
     {
         await array.WriteAsync();
-    }
-
-    private void WriteHeader(FileStream stream)
-    {
-        using var writer = stream.Writer();
-        writer.Write(width);
-        writer.Write(height);
+        GC.SuppressFinalize(this);
     }
 
     public static BigBitGrid Read(FileStream stream)

@@ -38,8 +38,11 @@ public class CLI(Options options)
 
         return async () =>
         {
-            maze = DeveMazeGeneratorCore.Generate(width, height, seed);
-            await IMazeFile.SaveAsync(mazeFileName, maze);
+            //maze = DeveMazeGeneratorCore.Generate(width, height, seed);
+            //await IMazeFile.SaveAsync(mazeFileName, maze);
+            using var fs = File.Open(mazeFileName, FileMode.Create);
+            maze = DeveMazeGeneratorCore.Generate(fs, width, height, seed);
+            await maze.DisposeAsync();
             Console.WriteLine($"Saved maze to {mazeFileName}");
         };
     }

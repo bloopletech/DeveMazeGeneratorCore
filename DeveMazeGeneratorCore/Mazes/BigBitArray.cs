@@ -12,66 +12,49 @@ public class BigBitArray
     private const int ChunkByteSize = 256 * 1024 * 1024;
     private const int BitsPerByte = 8; // sizeof(byte) * 8
 
-    private BitArrayHolder[] _chunks;
-    private long _bitLength;
-    private long _offset;
-
-    //public BigBitArray(int length)
-    //{
-    //    ArgumentOutOfRangeException.ThrowIfNegative(length);
-
-    //    _array = AllocateByteArray(length);
-    //    _bitLength = length;
-    //}
+    private readonly BitArrayHolder[] _chunks;
+    private readonly long _bitLength;
 
     public BigBitArray(SafeFileHandle handle, long offset)
     {
-        _offset = offset;
-        //read the bitlength from the handle
-        _bitLength = bitLength;
+        _bitLength = RandomAccess.ReadInt64(handle, ref offset);
+        _chunks = InitChunks(handle, offset);
+    }
 
-        var byteLength = GetByteArrayLengthFromBitLength(_bitLength);
-        // TODO: Find out why BitArray casts to uint etc
-        var (chunkCount, lastChunkSize) = Math.DivRem(byteLength, ChunkByteSize);
-
-        _chunks = new BitArrayHolder[chunkCount + (lastChunkSize > 0 ? 1 : 0)];
-
-        var chunkStart = offset;
-        for(var i = 0; i < chunkCount; i++)
-        {
-            _chunks[i] = new BitArrayHolder(handle, chunkStart, ChunkByteSize);
-            chunkStart += ChunkByteSize;
-        }
-        if(lastChunkSize > 0) _chunks[^1] = new BitArrayHolder(handle, chunkStart, lastChunkSize);
-
-        var currentLength = RandomAccess.GetLength(handle);
-        var requiredLength = offset + byteLength;
-        if(currentLength < requiredLength) RandomAccess.SetLength(handle, requiredLength);
+    public BigBitArray(FileStream stream) : this(stream.SafeFileHandle, stream.Position)
+    {
     }
 
     public BigBitArray(SafeFileHandle handle, long offset, long bitLength)
     {
-        _offset = offset;
-        //write the bitlength to the handle
         _bitLength = bitLength;
+        RandomAccess.Write(handle, ref offset, bitLength);
 
+        _chunks = InitChunks(handle, offset);
+        RandomAccess.EnsureLength(handle, offset, _chunks[^1].End);
+    }
+
+    public BigBitArray(FileStream stream, long bitLength) : this(stream.SafeFileHandle, stream.Position, bitLength)
+    {
+    }
+
+    private BitArrayHolder[] InitChunks(SafeFileHandle handle, long offset)
+    {
         var byteLength = GetByteArrayLengthFromBitLength(_bitLength);
         // TODO: Find out why BitArray casts to uint etc
         var (chunkCount, lastChunkSize) = Math.DivRem(byteLength, ChunkByteSize);
 
-        _chunks = new BitArrayHolder[chunkCount + (lastChunkSize > 0 ? 1 : 0)];
+        var chunks = new BitArrayHolder[chunkCount + (lastChunkSize > 0 ? 1 : 0)];
 
         var chunkStart = offset;
         for(var i = 0; i < chunkCount; i++)
         {
-            _chunks[i] = new BitArrayHolder(handle, chunkStart, ChunkByteSize);
+            chunks[i] = new BitArrayHolder(handle, chunkStart, ChunkByteSize);
             chunkStart += ChunkByteSize;
         }
-        if(lastChunkSize > 0) _chunks[^1] = new BitArrayHolder(handle, chunkStart, lastChunkSize);
+        if(lastChunkSize > 0) chunks[^1] = new BitArrayHolder(handle, chunkStart, lastChunkSize);
 
-        var currentLength = RandomAccess.GetLength(handle);
-        var requiredLength = offset + byteLength;
-        if(currentLength < requiredLength) RandomAccess.SetLength(handle, requiredLength);
+        return chunks;
     }
 
     public bool this[long index]
@@ -93,7 +76,7 @@ public class BigBitArray
         var chunkBitOffset = (chunkOffset * BitsPerByte) + bitOffset;
 
         var chunk = _chunks[chunksIndex];
-        Sync(chunk);
+        EnsureLoaded(chunk);
         return chunk[(int)chunkBitOffset];
     }
 
@@ -110,50 +93,34 @@ public class BigBitArray
         var chunkBitOffset = (chunkOffset * BitsPerByte) + bitOffset;
 
         var chunk = _chunks[chunksIndex];
-        Sync(chunk);
+        EnsureLoaded(chunk);
         chunk[(int)chunkBitOffset] = value;
     }
 
     public long Length => _bitLength;
 
-    /// <summary>Creates a shallow copy of the <see cref="BitArray"/>.</summary>
-    //public object Clone() => new BitArray(this);
-
-    private void Sync(BitArrayHolder chunk)
+    private void EnsureLoaded(BitArrayHolder chunk)
     {
-        chunk.LastUsedAt = Environment.TickCount64;
         if(chunk.IsPresent) return;
-        do
-        {
-            var inUse = _chunks.Where(c => c.IsPresent);
-            if(inUse.Count() < 10) break;
-
-            var oldest = inUse.OrderBy(c => c.LastUsedAt);
-            oldest.First().Save();
-        }
-        while(true);
+        var toEvict = _chunks.Where(c => c.IsPresent).OrderByDescending(c => c.LastUsedAt).Skip(3);
+        foreach(var c in toEvict) c.Evict();
         chunk.Load();
     }
 
     public void Write()
     {
-        foreach(var chunk in _chunks) if(chunk.IsPresent) chunk.Save();
+        var toEvict = _chunks.Where(c => c.IsPresent);
+        foreach(var c in toEvict) c.Evict();
     }
 
     public async Task WriteAsync()
     {
-        foreach(var chunk in _chunks) if(chunk.IsPresent) chunk.Save();
+        // TODO: Figure out some background queue writer async thingo
+        Write();
     }
 
-    public static BigBitArray Read(FileStream stream)
-    {
-        return new BigBitArray(stream.SafeFileHandle, stream.Position);
-    }
-
-    public static async Task<BigBitArray> ReadAsync(FileStream stream)
-    {
-        return new BigBitArray(stream.SafeFileHandle, stream.Position);
-    }
+    public static BigBitArray Read(FileStream stream) => new BigBitArray(stream);
+    public static async Task<BigBitArray> ReadAsync(FileStream stream) => new BigBitArray(stream);
 
     /// <summary>Determines the number of <see cref="byte"/>s required to store <paramref name="bitLength"/> bits.</summary>
     private static long GetByteArrayLengthFromBitLength(long bitLength)

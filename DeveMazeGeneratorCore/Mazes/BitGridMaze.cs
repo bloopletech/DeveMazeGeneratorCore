@@ -5,28 +5,31 @@ namespace DeveMazeGeneratorCore.Mazes;
 
 public class BitGridMaze : IMaze
 {
+    private readonly Stream stream;
     private readonly int width;
     private readonly int height;
     private readonly BitGrid grid;
 
-    public BitGridMaze(int width, int height) : this(width, height, new(width, height))
+    public BitGridMaze(Stream stream, int width, int height) : this(stream, width, height, new(width, height))
     {
     }
 
-    public BitGridMaze(BitGridMaze source) : this(source.Width, source.Height, new(source.grid))
+    public BitGridMaze(BitGridMaze source) : this(new MemoryStream(), source.Width, source.Height, new(source.grid))
     {
     }
 
-    private BitGridMaze(int width, int height, BitGrid grid)
+    private BitGridMaze(Stream stream, int width, int height, BitGrid grid)
     {
         if(width != grid.Width) throw new ArgumentException($"width {width} != grid width {grid.Width}");
         if(height != grid.Height) throw new ArgumentException($"height {height} != grid height {grid.Height}");
 
+        this.stream = stream;
         this.width = width;
         this.height = height;
         this.grid = grid;
     }
 
+    public Stream Stream => stream;
     public int Width => width;
     public int Height => height;
 
@@ -41,16 +44,18 @@ public class BitGridMaze : IMaze
         set => grid[x, y] = value;
     }
 
-    public void Write(Stream stream)
+    public void Dispose()
     {
         WriteHeader(stream);
         grid.Write(stream);
+        GC.SuppressFinalize(this);
     }
 
-    public async Task WriteAsync(Stream stream)
+    public async ValueTask DisposeAsync()
     {
         WriteHeader(stream);
         await grid.WriteAsync(stream);
+        GC.SuppressFinalize(this);
     }
 
     private void WriteHeader(Stream stream)
@@ -67,7 +72,7 @@ public class BitGridMaze : IMaze
         var width = reader.ReadInt32();
         var height = reader.ReadInt32();
         var grid = BitGrid.Read(stream);
-        return new BitGridMaze(width, height, grid);
+        return new BitGridMaze(stream, width, height, grid);
     }
 
     public static async Task<BitGridMaze> ReadAsync(Stream stream)
@@ -76,6 +81,6 @@ public class BitGridMaze : IMaze
         var width = reader.ReadInt32();
         var height = reader.ReadInt32();
         var grid = await BitGrid.ReadAsync(stream);
-        return new BitGridMaze(width, height, grid);
+        return new BitGridMaze(stream, width, height, grid);
     }
 }

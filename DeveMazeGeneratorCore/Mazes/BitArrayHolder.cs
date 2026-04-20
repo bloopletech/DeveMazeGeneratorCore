@@ -9,39 +9,42 @@ public class BitArrayHolder(SafeFileHandle handle, long offset, long size)
 {
     private BitArray? array;
 
-    public BitArray Array
-    {
-        get
-        {
-            Load();
-            return array!;
-        }
-    }
+    public long LastUsedAt { get; set; } = long.MaxValue;
 
     public bool this[int index]
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Array[index];
+        get
+        {
+            LastUsedAt = Environment.TickCount64;
+            return array![index];
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => Array[index] = value;
+        set
+        {
+            LastUsedAt = Environment.TickCount64;
+            array![index] = value;
+        }
     }
 
     public bool IsEmpty => array == null;
     public bool IsPresent => array != null;
-
-    public long LastUsedAt { get; set; } = long.MaxValue;
+    public long Start => offset;
+    public long End => offset + size;
 
     public void Load()
     {
         if(array != null) return;
         array = BitArray.Read(handle, offset, size);
+        //LastUsedAt = Environment.TickCount;
     }
 
-    public void Save()
+    public void Evict()
     {
         if(array == null) return;
         array.Write(handle, offset, size);
         array = null;
-        LastUsedAt = long.MaxValue;
+        //LastUsedAt = long.MaxValue;
     }
 }
