@@ -12,9 +12,9 @@ public class BigBitArray : IDisposable
     private const int ChunkByteSize = 256 * 1024 * 1024;
     private const int BitsPerByte = 8; // sizeof(byte) * 8
 
-    private Overlay[] _arrays;
+    private BitArrayHolder[] _arrays;
 
-    private int _bitLength;
+    private long _bitLength;
     private bool _disposed;
 
     //public BigBitArray(int length)
@@ -53,7 +53,7 @@ public class BigBitArray : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Get(int index)
+    public bool Get(long index)
     {
         if((uint)index >= (uint)_bitLength)
         {

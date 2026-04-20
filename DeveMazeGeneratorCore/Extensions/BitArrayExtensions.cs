@@ -1,6 +1,7 @@
 using System.Collections;
-using System.IO.MemoryMappedFiles;
+//using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
+using Microsoft.Win32.SafeHandles;
 
 namespace DeveMazeGeneratorCore.Extensions;
 
@@ -27,12 +28,24 @@ public static class BitArrayExtensions
             await writer.BaseStream.WriteAsync(array.GetArray());
         }
 
-        public void Write(MemoryMappedFile file, long offset)
+        //public void Write(MemoryMappedFile file, long offset)
+        //{
+        //    var rawArray = array.GetArray();
+        //    using var accessor = file.CreateViewAccessor(offset, rawArray.Length + 4);
+        //    accessor.Write(0, array.Length);
+        //    accessor.WriteArray(4, rawArray, 0, rawArray.Length);
+        //}
+
+        public void Write(SafeFileHandle handle, long offset, long size)
         {
             var rawArray = array.GetArray();
-            using var accessor = file.CreateViewAccessor(offset, rawArray.Length + 4);
-            accessor.Write(0, array.Length);
-            accessor.WriteArray(4, rawArray, 0, rawArray.Length);
+            RandomAccess.Write(handle, rawArray, offset);
+        }
+
+        public async Task WriteAsync(SafeFileHandle handle, long offset, long size)
+        {
+            var rawArray = array.GetArray();
+            await RandomAccess.WriteAsync(handle, rawArray, offset);
         }
 
         public static BitArray Read(Stream stream)
@@ -51,14 +64,30 @@ public static class BitArrayExtensions
             return result;
         }
 
-        public static BitArray Read(MemoryMappedFile file, long offset)
-        {
-            using var lengthAccessor = file.CreateViewAccessor(offset, 4);
-            var result = new BitArray(lengthAccessor.ReadInt32(0));
-            var rawArray = result.GetArray();
+        //public static BitArray Read(MemoryMappedFile file, long offset)
+        //{
+        //    using var lengthAccessor = file.CreateViewAccessor(offset, 4);
+        //    var result = new BitArray(lengthAccessor.ReadInt32(0));
+        //    var rawArray = result.GetArray();
 
-            using var accessor = file.CreateViewAccessor(offset + 4, rawArray.Length);
-            accessor.ReadArray(0, rawArray, 0, rawArray.Length);
+        //    using var accessor = file.CreateViewAccessor(offset + 4, rawArray.Length);
+        //    accessor.ReadArray(0, rawArray, 0, rawArray.Length);
+        //    return result;
+        //}
+
+        public static BitArray Read(SafeFileHandle handle, long offset, long size, int bitLength)
+        {
+            var result = new BitArray(bitLength);
+            var rawArray = result.GetArray();
+            RandomAccess.ReadExactly(handle, rawArray, offset);
+            return result;
+        }
+
+        public static async Task<BitArray> ReadAsync(SafeFileHandle handle, long offset, long size, int bitLength)
+        {
+            var result = new BitArray(bitLength);
+            var rawArray = result.GetArray();
+            await RandomAccess.ReadExactlyAsync(handle, rawArray, offset);
             return result;
         }
     }
