@@ -37,8 +37,6 @@ public class BigBitGridMaze : IMaze
         this.width = width;
         this.height = height;
 
-        MazeSerializer.WriteHeader(stream, MazeType.BigBitGridMaze);
-
         //RandomAccess.Write(handle, ref offset, (ushort)MazeType.BitGridMaze);
         RandomAccess.Write(handle, ref offset, width);
         RandomAccess.Write(handle, ref offset, height);
@@ -78,15 +76,5 @@ public class BigBitGridMaze : IMaze
     public async Task WriteAsync()
     {
         await grid.DisposeAsync();
-    }
-
-    public static BigBitGridMaze Read(Stream stream)
-    {
-        return new BigBitGridMaze((FileStream)stream);
-    }
-
-    public static async Task<BigBitGridMaze> ReadAsync(Stream stream)
-    {
-        return new BigBitGridMaze((FileStream)stream);
     }
 }

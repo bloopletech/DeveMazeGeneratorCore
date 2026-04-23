@@ -59,14 +59,4 @@ public class BigBitGrid : IDisposable, IAsyncDisposable
         await array.WriteAsync();
         GC.SuppressFinalize(this);
     }
-
-    public static BigBitGrid Read(FileStream stream)
-    {
-        return new BigBitGrid(stream.SafeFileHandle, stream.Position);
-    }
-
-    public static async Task<BigBitGrid> ReadAsync(FileStream stream)
-    {
-        return new BigBitGrid(stream.SafeFileHandle, stream.Position);
-    }
 }

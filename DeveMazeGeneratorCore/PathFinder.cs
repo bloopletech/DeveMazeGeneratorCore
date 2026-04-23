@@ -15,7 +15,7 @@ public static class PathFinder
     /// </summary>
     /// <param name="maze">The maze.InnerMap</param>
     /// <returns>The shortest path in a list of points</returns>
-    public static IMazePath Find(IMaze maze)
+    public static void Find(IMaze maze, IMazePath path)
     {
         maze.EnsureMinimumSize();
 
@@ -114,8 +114,6 @@ public static class PathFinder
             }
         }
 
-        var path = new MazePath(width, height);
         foreach(var point in points) path[point.X, point.Y] = true;
-        return path;
     }
 }

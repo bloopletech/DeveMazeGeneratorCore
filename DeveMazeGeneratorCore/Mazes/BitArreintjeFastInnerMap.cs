@@ -35,8 +35,6 @@ public class BitArreintjeFastInnerMap : IMaze
         this.width = width;
         this.height = height;
 
-        MazeSerializer.WriteHeader(stream, MazeType.BitArreintjeFastInnerMap);
-
         using var writer = stream.Writer();
         writer.Write(width);
         writer.Write(height);
@@ -91,7 +89,6 @@ public class BitArreintjeFastInnerMap : IMaze
     {
         //WriteHeader(stream);
         // TODO: Actually write _innerData to the stream
-        GC.SuppressFinalize(this);
     }
 
     public async Task WriteAsync()
@@ -107,18 +104,4 @@ public class BitArreintjeFastInnerMap : IMaze
     //    writer.Write(Width);
     //    writer.Write(Height);
     //}
-
-    public static BitArreintjeFastInnerMap Read(Stream stream)
-    {
-        var maze = new BitArreintjeFastInnerMap(stream);
-        maze.Read();
-        return maze;
-    }
-
-    public static async Task<BitArreintjeFastInnerMap> ReadAsync(Stream stream)
-    {
-        var maze = new BitArreintjeFastInnerMap(stream);
-        await maze.ReadAsync();
-        return maze;
-    }
 }

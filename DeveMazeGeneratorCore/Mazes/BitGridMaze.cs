@@ -30,8 +30,6 @@ public class BitGridMaze : IMaze
         this.width = width;
         this.height = height;
 
-        MazeSerializer.WriteHeader(stream, MazeType.BitGridMaze);
-
         using var writer = stream.Writer();
         writer.Write(width);
         writer.Write(height);
@@ -54,7 +52,6 @@ public class BitGridMaze : IMaze
     //    this.grid = grid;
     //}
 
-    public MazeType Type => MazeType.BitGridMaze;
     public Stream Stream => stream;
     public int Width => width;
     public int Height => height;
@@ -101,18 +98,4 @@ public class BitGridMaze : IMaze
     //    writer.Write(Width);
     //    writer.Write(Height);
     //}
-
-    public static BitGridMaze Read(Stream stream)
-    {
-        var maze = new BitGridMaze(stream);
-        maze.Read();
-        return maze;
-    }
-
-    public static async Task<BitGridMaze> ReadAsync(Stream stream)
-    {
-        var maze = new BitGridMaze(stream);
-        await maze.ReadAsync();
-        return maze;
-    }
 }

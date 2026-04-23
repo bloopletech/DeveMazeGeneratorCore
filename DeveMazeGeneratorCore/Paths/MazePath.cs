@@ -6,22 +6,43 @@ namespace DeveMazeGeneratorCore.Paths;
 
 public class MazePath : IMazePath
 {
+    private readonly Stream stream;
+    private readonly int width;
+    private readonly int height;
     private readonly BitGrid grid;
 
-    public MazePath(int width, int height) : this(new BitGrid(width, height))
+    public MazePath(Stream stream)
     {
+        this.stream = stream;
+
+        using var reader = stream.Reader();
+        var width = reader.ReadInt32();
+        var height = reader.ReadInt32();
+
+        grid = new BitGrid(stream);
+
+        if(width != grid.Width) throw new ArgumentException($"width {width} != grid width {grid.Width}");
+        if(height != grid.Height) throw new ArgumentException($"height {height} != grid height {grid.Height}");
     }
 
-    public MazePath(MazePath source) : this(new BitGrid(source.grid))
+    public MazePath(Stream stream, int width, int height)
     {
+        this.stream = stream;
+        this.width = width;
+        this.height = height;
+
+        using var writer = stream.Writer();
+        writer.Write(width);
+        writer.Write(height);
+
+        grid = new BitGrid(stream, width, height);
     }
 
-    private MazePath(BitGrid grid)
-    {
-        this.grid = grid;
-    }
+    public Stream Stream => stream;
+    public int Width => width;
+    public int Height => height;
 
-    public IMazePath Clone() => new MazePath(this);
+    public IMazePath Clone() => throw new NotImplementedException();
 
     public bool this[int x, int y]
     {
@@ -43,27 +64,27 @@ public class MazePath : IMazePath
         //}
     }
 
-    public void Write(Stream stream)
+    public void Read()
     {
-        using var writer = stream.Writer();
-        writer.Write((ushort)MazePathType.MazePath);
-        grid.Write(stream);
+        grid.Read();
+        stream.EnsureCompleted();
     }
 
-    public async Task WriteAsync(Stream stream)
+    public async Task ReadAsync()
     {
-        using var writer = stream.Writer();
-        writer.Write((ushort)MazePathType.MazePath);
-        await grid.WriteAsync(stream);
+        await grid.ReadAsync();
+        stream.EnsureCompleted();
     }
 
-    public static IMazePath Read(Stream stream)
+    public void Write()
     {
-        return new MazePath(BitGrid.Read(stream));
+        //WriteHeader(stream);
+        grid.Write();
     }
 
-    public static async Task<IMazePath> ReadAsync(Stream stream)
+    public async Task WriteAsync()
     {
-        return new MazePath(await BitGrid.ReadAsync(stream));
+        //WriteHeader(stream);
+        await grid.WriteAsync();
     }
 }

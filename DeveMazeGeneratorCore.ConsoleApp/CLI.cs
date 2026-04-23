@@ -38,8 +38,6 @@ public class CLI(Options options)
 
         return async () =>
         {
-            //maze = DeveMazeGeneratorCore.Generate(width, height, seed);
-            //await IMazeFile.SaveAsync(mazeFileName, maze);
             using var fs = File.Open(mazeFileName, FileMode.Create);
             maze = DeveMazeGeneratorCore.Generate(fs, width, height, seed);
             await maze.WriteAsync();
@@ -52,7 +50,7 @@ public class CLI(Options options)
         mazeFileName ??= options.Next();
         return async () =>
         {
-            maze ??= await IMazeFile.LoadAsync(mazeFileName);
+            maze ??= await LoadAsync(mazeFileName);
             var result = Verifier.IsPerfectMaze(maze);
             Console.WriteLine($"Is our maze perfect?: {result}");
         };
@@ -64,9 +62,10 @@ public class CLI(Options options)
         pathFileName = options.NextFileName(Path.ChangeExtension(mazeFileName, ".path"));
         return async () =>
         {
-            maze ??= await IMazeFile.LoadAsync(mazeFileName);
-            path = PathFinder.Find(maze);
-            await IMazePathFile.SaveAsync(pathFileName, path);
+            maze ??= await LoadAsync(mazeFileName);
+            using var fs = File.Open(pathFileName, FileMode.Create);
+            path = DeveMazeGeneratorCore.Solve(fs, maze);
+            await path.WriteAsync();
             Console.WriteLine($"Saved solution to {pathFileName}");
         };
     }
@@ -77,7 +76,7 @@ public class CLI(Options options)
         var imageFileName = options.NextFileName(Path.ChangeExtension(mazeFileName, ".png"));
         return async () =>
         {
-            maze ??= await IMazeFile.LoadAsync(mazeFileName);
+            maze ??= await LoadAsync(mazeFileName);
             using var image = ImageCreator.CreateImage(maze);
             await ImageCreator.Save(imageFileName, image);
 
@@ -92,8 +91,8 @@ public class CLI(Options options)
         var imageFileName = options.NextFileName(Path.ChangeExtension(pathFileName, ".path.png"));
         return async () =>
         {
-            maze ??= await IMazeFile.LoadAsync(mazeFileName);
-            path ??= await IMazePathFile.LoadAsync(pathFileName);
+            maze ??= await LoadAsync(mazeFileName);
+            path ??= await LoadPathAsync(pathFileName);
             using var image = ImageCreator.CreateImage(maze, path);
             await ImageCreator.Save(imageFileName, image);
 
@@ -107,4 +106,16 @@ public class CLI(Options options)
         var result = Verifier.IsPerfectMaze(maze);
         if(!result) throw new InvalidOperationException("Maze is not perfect");
     };
+
+    private static async Task<IMaze> LoadAsync(string fileName)
+    {
+        var fs = File.Open(fileName, FileMode.Open);
+        return await MazeSerializer.ReadAsync(fs);
+    }
+
+    private static async Task<IMazePath> LoadPathAsync(string fileName)
+    {
+        using var fs = File.Open(fileName, FileMode.Open);
+        return await MazePathSerializer.ReadAsync(fs);
+    }
 }

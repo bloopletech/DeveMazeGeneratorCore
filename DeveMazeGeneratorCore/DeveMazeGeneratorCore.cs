@@ -1,6 +1,7 @@
 using DeveMazeGeneratorCore.Extensions;
 using DeveMazeGeneratorCore.Generators;
 using DeveMazeGeneratorCore.Mazes;
+using DeveMazeGeneratorCore.Paths;
 
 namespace DeveMazeGeneratorCore;
 
@@ -36,7 +37,7 @@ public static class DeveMazeGeneratorCore
         int height,
         int? seed = null)
     {
-        var maze = IMaze.Create(mazeType, stream, width, height);
+        var maze = MazeSerializer.Create(mazeType, stream, width, height);
         var random = seed.HasValue ? new Random(seed.Value) : new Random();
         var realSeed = random.GetSeed();
 
@@ -51,7 +52,6 @@ public static class DeveMazeGeneratorCore
         var size = (long)width * height;
         var byteSize = size.DivCeil(8);
         return byteSize > int.MaxValue ? MazeType.BigBitGridMaze : MazeType.BitGridMaze;
-
     }
 
     public static IMaze BenchmarkBaseline()
@@ -67,6 +67,17 @@ public static class DeveMazeGeneratorCore
             BenchmarkSize,
             BenchmarkSize,
             BenchmarkSeed);
+    }
+
+    public static IMazePath Solve(IMaze maze) => Solve(new MemoryStream(), maze);
+
+    public static IMazePath Solve(Stream stream, IMaze maze) => Solve(MazePathType.MazePath, stream, maze);
+
+    public static IMazePath Solve(MazePathType type, Stream stream, IMaze maze)
+    {
+        var path = MazePathSerializer.Create(type, stream, maze.Width, maze.Height);
+        PathFinder.Find(maze, path);
+        return path;
     }
 
     private const int BenchmarkSize = (4096 * 2 * 2 * 2) + 1;

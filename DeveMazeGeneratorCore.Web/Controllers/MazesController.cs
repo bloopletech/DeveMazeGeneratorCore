@@ -51,7 +51,7 @@ public class MazesController : ControllerBase
         var mazeGenerationTime = w.Elapsed;
 
         w.Restart();
-        var path = PathFinder.Find(maze);
+        var path = DeveMazeGeneratorCore.Solve(maze);
         var pathGenerationTime = w.Elapsed;
 
         w.Restart();
@@ -75,7 +75,7 @@ public class MazesController : ControllerBase
         var mazeGenerationTime = w.Elapsed;
 
         w.Restart();
-        var path = PathFinder.Find(maze);
+        var path = DeveMazeGeneratorCore.Solve(maze);
         var pathGenerationTime = w.Elapsed;
 
         w.Restart();
