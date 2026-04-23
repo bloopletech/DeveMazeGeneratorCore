@@ -11,13 +11,14 @@ public class BitArreintjeFastInnerMap : IMaze
     private readonly int height;
     private readonly BitArreintjeFastInnerMapArray[] _innerData;
 
-    public BitArreintjeFastInnerMap(Stream stream, int width, int height)
+    public BitArreintjeFastInnerMap(Stream stream)
     {
-        if(width < 3) throw new ArgumentOutOfRangeException(nameof(width), width, "Width must >= 3");
-        if(height < 3) throw new ArgumentOutOfRangeException(nameof(height), height, "Height must >= 3");
         this.stream = stream;
-        this.width = width;
-        this.height = height;
+
+        using var reader = stream.Reader();
+        width = reader.ReadInt32();
+        height = reader.ReadInt32();
+
         _innerData = new BitArreintjeFastInnerMapArray[width];
         for(int i = 0; i < width; i++)
         {
@@ -25,6 +26,29 @@ public class BitArreintjeFastInnerMap : IMaze
         }
     }
 
+    public BitArreintjeFastInnerMap(Stream stream, int width, int height)
+    {
+        if(width < 3) throw new ArgumentOutOfRangeException(nameof(width), width, "Width must >= 3");
+        if(height < 3) throw new ArgumentOutOfRangeException(nameof(height), height, "Height must >= 3");
+
+        this.stream = stream;
+        this.width = width;
+        this.height = height;
+
+        MazeSerializer.WriteHeader(stream, MazeType.BitArreintjeFastInnerMap);
+
+        using var writer = stream.Writer();
+        writer.Write(width);
+        writer.Write(height);
+
+        _innerData = new BitArreintjeFastInnerMapArray[width];
+        for(int i = 0; i < width; i++)
+        {
+            _innerData[i] = new BitArreintjeFastInnerMapArray(height);
+        }
+    }
+
+    public MazeType Type => MazeType.BitArreintjeFastInnerMap;
     public Stream Stream => stream;
     public int Width => width;
     public int Height => height;
@@ -53,43 +77,48 @@ public class BitArreintjeFastInnerMap : IMaze
         }
     }
 
-    public void Dispose()
+    public void Read()
     {
-        WriteHeader(stream);
+        // TODO: Actually read _innerData from the stream
+    }
+
+    public async Task ReadAsync()
+    {
+        // TODO: Actually read _innerData from the stream
+    }
+
+    public void Write()
+    {
+        //WriteHeader(stream);
         // TODO: Actually write _innerData to the stream
         GC.SuppressFinalize(this);
     }
 
-    public async ValueTask DisposeAsync()
+    public async Task WriteAsync()
     {
-        WriteHeader(stream);
+        //WriteHeader(stream);
         // TODO: Actually write _innerData to the stream
-        GC.SuppressFinalize(this);
     }
 
-    private void WriteHeader(Stream stream)
-    {
-        using var writer = stream.Writer();
-        writer.Write((ushort)MazeType.BitArreintjeFastInnerMap);
-        writer.Write(Width);
-        writer.Write(Height);
-    }
+    //private void WriteHeader(Stream stream)
+    //{
+    //    using var writer = stream.Writer();
+    //    writer.Write((ushort)MazeType.BitArreintjeFastInnerMap);
+    //    writer.Write(Width);
+    //    writer.Write(Height);
+    //}
 
     public static BitArreintjeFastInnerMap Read(Stream stream)
     {
-        using var reader = stream.Reader();
-        var width = reader.ReadInt32();
-        var height = reader.ReadInt32();
-        // TODO: Actually read _innerData from the stream
-        return new BitArreintjeFastInnerMap(stream, width, height);
+        var maze = new BitArreintjeFastInnerMap(stream);
+        maze.Read();
+        return maze;
     }
 
     public static async Task<BitArreintjeFastInnerMap> ReadAsync(Stream stream)
     {
-        using var reader = stream.Reader();
-        var width = reader.ReadInt32();
-        var height = reader.ReadInt32();
-        // TODO: Actually read _innerData from the stream
-        return new BitArreintjeFastInnerMap(stream, width, height);
+        var maze = new BitArreintjeFastInnerMap(stream);
+        await maze.ReadAsync();
+        return maze;
     }
 }

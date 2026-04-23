@@ -14,4 +14,9 @@ public static class MathExtensions
         /// <returns>The first uneven number lower then this</returns>
         public int MakeUneven() => int.IsEvenInteger(number) ? number - 1 : number;
     }
+
+    extension(long number)
+    {
+        public long DivCeil(long other) => (number + other - 1) / other;
+    }
 }

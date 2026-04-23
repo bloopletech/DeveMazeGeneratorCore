@@ -7,28 +7,23 @@ namespace DeveMazeGeneratorCore;
 public static class DeveMazeGeneratorCore
 {
     public static IMaze Generate(int width, int height, int? seed = null) => Generate(
-        MazeType.BitGridMaze,
-        AlgorithmType.Backtrack,
+        new MemoryStream(),
         width,
         height,
         seed);
 
-    public static IMaze Generate(MazeType mazeType, AlgorithmType algorithmType, int width, int height, int? seed = null)
-    {
-        var maze = IMaze.Create(mazeType, width, height);
-        var random = seed.HasValue ? new Random(seed.Value) : new Random();
-        var realSeed = random.GetSeed();
-
-        var algorithm = IAlgorithm.Create(algorithmType, maze, random);
-        algorithm.Generate();
-
-        return maze;
-    }
-
-    public static IMaze Generate(FileStream stream, int width, int height, int? seed = null) => Generate(
-        MazeType.BigBitGridMaze,
+    public static IMaze Generate(Stream stream, int width, int height, int? seed = null) => Generate(
+        DetermineMazeType(width, height),
         AlgorithmType.Backtrack,
         stream,
+        width,
+        height,
+        seed);
+
+    public static IMaze Generate(MazeType mazeType, AlgorithmType algorithmType, int width, int height, int? seed = null) => Generate(
+        mazeType,
+        algorithmType,
+        new MemoryStream(),
         width,
         height,
         seed);
@@ -36,7 +31,7 @@ public static class DeveMazeGeneratorCore
     public static IMaze Generate(
         MazeType mazeType,
         AlgorithmType algorithmType,
-        FileStream stream,
+        Stream stream,
         int width,
         int height,
         int? seed = null)
@@ -49,6 +44,14 @@ public static class DeveMazeGeneratorCore
         algorithm.Generate();
 
         return maze;
+    }
+
+    public static MazeType DetermineMazeType(int width, int height)
+    {
+        var size = (long)width * height;
+        var byteSize = size.DivCeil(8);
+        return byteSize > int.MaxValue ? MazeType.BigBitGridMaze : MazeType.BitGridMaze;
+
     }
 
     public static IMaze BenchmarkBaseline()

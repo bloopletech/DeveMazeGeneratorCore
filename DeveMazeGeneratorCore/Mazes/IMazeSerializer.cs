@@ -2,36 +2,62 @@ using DeveMazeGeneratorCore.Extensions;
 
 namespace DeveMazeGeneratorCore.Mazes;
 
-public static class IMazeSerializer
+public class MazeSerializer
 {
     public static readonly char[] MagicHeader = ['D', 'E', 'V', 'E', 'M', 'A', 'Z', 'E'];
     public const short Version = 1;
 
-    public static void Serialize(Stream stream, IMaze maze)
-    {
-        SerializeHeader(stream);
-        maze.Write(stream);
-    }
-
-    public static async Task SerializeAsync(Stream stream, IMaze maze)
-    {
-        SerializeHeader(stream);
-        await maze.WriteAsync(stream);
-    }
-
-    private static void SerializeHeader(Stream stream)
+    public static void WriteHeader(Stream stream, MazeType type)
     {
         using var writer = stream.Writer();
         writer.Write(MagicHeader);
         writer.Write(Version);
+        writer.Write((ushort)type);
     }
 
-    public static IMaze Deserialize(Stream stream)
+
+
+
+    private readonly Stream stream;
+
+    public MazeSerializer(Stream stream)
+    {
+        this.stream = stream;
+    }
+
+    public MazeSerializer(Stream stream, IMaze maze)
+    {
+        this.stream = stream;
+
+
+    }
+
+    public static void Serialize(IMaze maze)
+    {
+        maze.Stream.Position = 0;
+        SerializeHeader(maze);
+        maze.Write();
+    }
+
+    public static async Task SerializeAsync(IMaze maze)
+    {
+        maze.Stream.Position = 0;
+        SerializeHeader(maze);
+        await maze.WriteAsync();
+    }
+
+    private static void SerializeHeader(IMaze maze)
+    {
+        using var writer = maze.Stream.Writer();
+        writer.Write(MagicHeader);
+        writer.Write(Version);
+        writer.Write((ushort)maze.Type);
+    }
+
+    public IMaze Deserialize()
     {
         var type = DeserializeHeader(stream);
-        var maze = IMaze.Read(type, stream);
-        stream.EnsureCompleted();
-        return maze;
+        return IMaze.Read(type, stream);
     }
 
     public static async Task<IMaze> DeserializeAsync(Stream stream)

@@ -10,30 +10,57 @@ public class BitGridMaze : IMaze
     private readonly int height;
     private readonly BitGrid grid;
 
-    public BitGridMaze(Stream stream, int width, int height) : this(stream, width, height, new(width, height))
+    public BitGridMaze(Stream stream)
     {
-    }
+        this.stream = stream;
 
-    public BitGridMaze(BitGridMaze source) : this(new MemoryStream(), source.Width, source.Height, new(source.grid))
-    {
-    }
+        using var reader = stream.Reader();
+        width = reader.ReadInt32();
+        height = reader.ReadInt32();
 
-    private BitGridMaze(Stream stream, int width, int height, BitGrid grid)
-    {
+        grid = new BitGrid(stream);
+
         if(width != grid.Width) throw new ArgumentException($"width {width} != grid width {grid.Width}");
         if(height != grid.Height) throw new ArgumentException($"height {height} != grid height {grid.Height}");
+    }
 
+    public BitGridMaze(Stream stream, int width, int height)
+    {
         this.stream = stream;
         this.width = width;
         this.height = height;
-        this.grid = grid;
+
+        MazeSerializer.WriteHeader(stream, MazeType.BitGridMaze);
+
+        using var writer = stream.Writer();
+        writer.Write(width);
+        writer.Write(height);
+
+        grid = new BitGrid(stream, width, height);
     }
 
+    //public BitGridMaze(BitGridMaze source) : this(new MemoryStream(), source.Width, source.Height, new(source.grid))
+    //{
+    //}
+
+    //private BitGridMaze(Stream stream, int width, int height, BitGrid grid)
+    //{
+    //    if(width != grid.Width) throw new ArgumentException($"width {width} != grid width {grid.Width}");
+    //    if(height != grid.Height) throw new ArgumentException($"height {height} != grid height {grid.Height}");
+
+    //    this.stream = stream;
+    //    this.width = width;
+    //    this.height = height;
+    //    this.grid = grid;
+    //}
+
+    public MazeType Type => MazeType.BitGridMaze;
     public Stream Stream => stream;
     public int Width => width;
     public int Height => height;
 
-    public IMaze Clone() => new BitGridMaze(this);
+    //public IMaze Clone() => new BitGridMaze(this);
+    public IMaze Clone() => throw new NotImplementedException();
 
     public bool this[int x, int y]
     {
@@ -44,43 +71,48 @@ public class BitGridMaze : IMaze
         set => grid[x, y] = value;
     }
 
-    public void Dispose()
+    public void Read()
     {
-        WriteHeader(stream);
-        grid.Write(stream);
-        GC.SuppressFinalize(this);
+        grid.Read();
+        stream.EnsureCompleted();
     }
 
-    public async ValueTask DisposeAsync()
+    public async Task ReadAsync()
     {
-        WriteHeader(stream);
-        await grid.WriteAsync(stream);
-        GC.SuppressFinalize(this);
+        await grid.ReadAsync();
+        stream.EnsureCompleted();
     }
 
-    private void WriteHeader(Stream stream)
+    public void Write()
     {
-        using var writer = stream.Writer();
-        writer.Write((ushort)MazeType.BitGridMaze);
-        writer.Write(Width);
-        writer.Write(Height);
+        //WriteHeader(stream);
+        grid.Write();
     }
+
+    public async Task WriteAsync()
+    {
+        //WriteHeader(stream);
+        await grid.WriteAsync();
+    }
+
+    //private void WriteHeader(Stream stream)
+    //{
+    //    using var writer = stream.Writer();
+    //    writer.Write(Width);
+    //    writer.Write(Height);
+    //}
 
     public static BitGridMaze Read(Stream stream)
     {
-        using var reader = stream.Reader();
-        var width = reader.ReadInt32();
-        var height = reader.ReadInt32();
-        var grid = BitGrid.Read(stream);
-        return new BitGridMaze(stream, width, height, grid);
+        var maze = new BitGridMaze(stream);
+        maze.Read();
+        return maze;
     }
 
     public static async Task<BitGridMaze> ReadAsync(Stream stream)
     {
-        using var reader = stream.Reader();
-        var width = reader.ReadInt32();
-        var height = reader.ReadInt32();
-        var grid = await BitGrid.ReadAsync(stream);
-        return new BitGridMaze(stream, width, height, grid);
+        var maze = new BitGridMaze(stream);
+        await maze.ReadAsync();
+        return maze;
     }
 }

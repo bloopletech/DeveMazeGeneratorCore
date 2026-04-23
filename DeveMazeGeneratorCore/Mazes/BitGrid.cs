@@ -6,35 +6,45 @@ namespace DeveMazeGeneratorCore.Mazes;
 
 public class BitGrid
 {
+    private readonly Stream stream;
     public readonly int width;
     public readonly int height;
     private readonly BitArray array;
 
-    public BitGrid(int width, int height) : this(width, height, new(width * height))
+    public BitGrid(Stream stream)
     {
+        this.stream = stream;
+
+        using var reader = stream.Reader();
+        width = reader.ReadInt32();
+        height = reader.ReadInt32();
+
+        //array = new BitArray(0);
+        array = new BitArray(reader.ReadInt32());
     }
 
-    public BitGrid(BitGrid source) : this(source.width, source.height, new(source.array))
+    public BitGrid(Stream stream, int width, int height)
     {
-    }
-
-    private BitGrid(int width, int height, BitArray array)
-    {
-        var length = width * height;
-        if (length != array.Length)
-        {
-            throw new ArgumentException($"(width {width} * height {height}) {length} != array length {array.Length}");
-        }
-
+        this.stream = stream;
         this.width = width;
         this.height = height;
-        this.array = array;
+
+        using var writer = stream.Writer();
+        writer.Write(width);
+        writer.Write(height);
+
+        array = new BitArray(width * height);
     }
+
+    //public BitGrid(BitGrid source) : this(source.width, source.height, new(source.array))
+    //{
+    //}
 
     public int Width => width;
     public int Height => height;
 
-    public BitGrid Clone() => new(this);
+    //public BitGrid Clone() => new(this);
+    public BitGrid Clone() => throw new NotImplementedException();
 
     public bool this[int x, int y]
     {
@@ -45,38 +55,36 @@ public class BitGrid
         set => array[x + (y * height)] = value;
     }
 
-    public void Write(Stream stream)
+    public void Read()
     {
-        using var compressor = stream.Compressor();
-        WriteHeader(compressor);
-        array.Write(compressor);
+        stream.ReadExactly(array.GetArray());
+        //stream.PreservePosition(() => stream.ReadExactly(array.GetArray()));
+        //array = BitArray.Read(stream);
     }
 
-    public async Task WriteAsync(Stream stream)
+    public async Task ReadAsync()
     {
-        using var compressor = stream.Compressor();
-        WriteHeader(compressor);
-        await array.WriteAsync(compressor);
+        await stream.ReadExactlyAsync(array.GetArray());
+        //await stream.PreservePosition(async () => await stream.ReadExactlyAsync(array.GetArray()));
+        //array = await BitArray.ReadAsync(stream);
     }
 
-    private void WriteHeader(Stream stream)
+    public void Write()
     {
-        using var writer = stream.Writer();
-        writer.Write(width);
-        writer.Write(height);
+        //WriteHeader();
+        array.Write(stream);
     }
 
-    public static BitGrid Read(Stream stream)
+    public async Task WriteAsync()
     {
-        using var decompressor = stream.Decompressor();
-        using var reader = decompressor.Reader();
-        return new BitGrid(reader.ReadInt32(), reader.ReadInt32(), BitArray.Read(decompressor));
+        //WriteHeader();
+        await array.WriteAsync(stream);
     }
 
-    public static async Task<BitGrid> ReadAsync(Stream stream)
-    {
-        using var decompressor = stream.Decompressor();
-        using var reader = decompressor.Reader();
-        return new BitGrid(reader.ReadInt32(), reader.ReadInt32(), await BitArray.ReadAsync(decompressor));
-    }
+    //private void WriteHeader()
+    //{
+    //    using var writer = stream.Writer();
+    //    writer.Write(width);
+    //    writer.Write(height);
+    //}
 }

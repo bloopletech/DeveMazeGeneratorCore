@@ -42,7 +42,7 @@ public class CLI(Options options)
             //await IMazeFile.SaveAsync(mazeFileName, maze);
             using var fs = File.Open(mazeFileName, FileMode.Create);
             maze = DeveMazeGeneratorCore.Generate(fs, width, height, seed);
-            await maze.DisposeAsync();
+            await maze.WriteAsync();
             Console.WriteLine($"Saved maze to {mazeFileName}");
         };
     }

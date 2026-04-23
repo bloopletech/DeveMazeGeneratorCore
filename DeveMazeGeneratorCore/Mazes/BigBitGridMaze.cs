@@ -1,6 +1,5 @@
 using System.Runtime.CompilerServices;
 using DeveMazeGeneratorCore.Extensions;
-using Microsoft.Win32.SafeHandles;
 
 namespace DeveMazeGeneratorCore.Mazes;
 
@@ -37,12 +36,16 @@ public class BigBitGridMaze : IMaze
 
         this.width = width;
         this.height = height;
-        RandomAccess.Write(handle, ref offset, (ushort)MazeType.BitGridMaze);
+
+        MazeSerializer.WriteHeader(stream, MazeType.BigBitGridMaze);
+
+        //RandomAccess.Write(handle, ref offset, (ushort)MazeType.BitGridMaze);
         RandomAccess.Write(handle, ref offset, width);
         RandomAccess.Write(handle, ref offset, height);
         grid = new BigBitGrid(handle, offset, width, height);
     }
 
+    public MazeType Type => MazeType.BigBitGridMaze;
     public Stream Stream => stream;
     public int Width => width;
     public int Height => height;
@@ -59,16 +62,22 @@ public class BigBitGridMaze : IMaze
         set => grid[x, y] = value;
     }
 
-    public void Dispose()
+    public void Read()
     {
-        grid.Dispose();
-        GC.SuppressFinalize(this);
     }
 
-    public async ValueTask DisposeAsync()
+    public async Task ReadAsync()
+    {
+    }
+
+    public void Write()
+    {
+        grid.Dispose();
+    }
+
+    public async Task WriteAsync()
     {
         await grid.DisposeAsync();
-        GC.SuppressFinalize(this);
     }
 
     public static BigBitGridMaze Read(Stream stream)

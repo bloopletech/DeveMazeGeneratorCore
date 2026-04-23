@@ -12,7 +12,7 @@ public static class BitArrayExtensions
 
     extension(BitArray array)
     {
-        private ref byte[] GetArray() => ref GetArrayField(array);
+        public ref byte[] GetArray() => ref GetArrayField(array);
 
         public void Write(Stream stream)
         {
