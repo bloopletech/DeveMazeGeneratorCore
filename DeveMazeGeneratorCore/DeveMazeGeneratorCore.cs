@@ -71,12 +71,11 @@ public static class DeveMazeGeneratorCore
 
     public static IMazePath Solve(IMaze maze) => Solve(new MemoryStream(), maze);
 
-    public static IMazePath Solve(Stream stream, IMaze maze) => Solve(MazePathType.MazePath, stream, maze);
-
-    public static IMazePath Solve(MazePathType type, Stream stream, IMaze maze)
+    public static IMazePath Solve(Stream stream, IMaze maze)
     {
-        var path = MazePathSerializer.Create(type, stream, maze.Width, maze.Height);
-        PathFinder.Find(maze, path);
+        var points = PathFinder.Find(maze);
+        var path = new MazePath(points.ToArray());
+        path.Write(stream);
         return path;
     }
 

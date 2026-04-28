@@ -1,57 +1,21 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using DeveMazeGeneratorCore.Extensions;
 using DeveMazeGeneratorCore.Mazes;
+using DeveMazeGeneratorCore.Structures;
 
 namespace DeveMazeGeneratorCore.Paths;
 
 public class MazePath : IMazePath
 {
-    private readonly Stream stream;
-    private readonly int width;
-    private readonly int height;
-    private readonly BitGrid grid;
+    private MazePoint[] points;
 
-    public MazePath(Stream stream)
+    public MazePath(MazePoint[] points)
     {
-        this.stream = stream;
-
-        using var reader = stream.Reader();
-        var width = reader.ReadInt32();
-        var height = reader.ReadInt32();
-
-        grid = new BitGrid(stream);
-
-        if(width != grid.Width) throw new ArgumentException($"width {width} != grid width {grid.Width}");
-        if(height != grid.Height) throw new ArgumentException($"height {height} != grid height {grid.Height}");
+        this.points = points;
     }
-
-    public MazePath(Stream stream, int width, int height)
-    {
-        this.stream = stream;
-        this.width = width;
-        this.height = height;
-
-        using var writer = stream.Writer();
-        writer.Write(width);
-        writer.Write(height);
-
-        grid = new BitGrid(stream, width, height);
-    }
-
-    public Stream Stream => stream;
-    public int Width => width;
-    public int Height => height;
 
     public IMazePath Clone() => throw new NotImplementedException();
-
-    public bool this[int x, int y]
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => grid[x, y];
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => grid[x, y] = value;
-    }
 
     public void Highlight()
     {
@@ -64,27 +28,37 @@ public class MazePath : IMazePath
         //}
     }
 
-    public void Read()
+    public void Write(Stream stream)
     {
-        grid.Read();
-        stream.EnsureCompleted();
+        using var writer = stream.Writer();
+        writer.Write((ushort)MazePathType.MazePath);
+        writer.Write(points.Length);
+        stream.Write(MemoryMarshal.AsBytes(points));
     }
 
-    public async Task ReadAsync()
+    public async Task WriteAsync(Stream stream)
     {
-        await grid.ReadAsync();
-        stream.EnsureCompleted();
+        using var writer = stream.Writer();
+        writer.Write((ushort)MazePathType.MazePath);
+        writer.Write(points.Length);
+        await stream.WriteAsync(new ReadOnlyMemory<MazePoint>(points));
     }
 
-    public void Write()
+    public static IMazePath Read(Stream stream)
     {
-        //WriteHeader(stream);
-        grid.Write();
+        using var reader = stream.Reader();
+        var length = reader.ReadInt32();
+        var points = new MazePoint[length];
+        stream.ReadExactly(MemoryMarshal.AsBytes(points.AsSpan()));
+        return new MazePath(points);
     }
 
-    public async Task WriteAsync()
+    public static async Task<IMazePath> ReadAsync(Stream stream)
     {
-        //WriteHeader(stream);
-        await grid.WriteAsync();
+        using var reader = stream.Reader();
+        var length = reader.ReadInt32();
+        var points = new MazePoint[length];
+        await stream.ReadExactlyAsync(MemoryMarshal.AsBytes(points.AsSpan()));
+        return new MazePath(points);
     }
 }
