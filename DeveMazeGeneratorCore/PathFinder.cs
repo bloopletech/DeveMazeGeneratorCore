@@ -1,6 +1,7 @@
 using DeveMazeGeneratorCore.Extensions;
 using DeveMazeGeneratorCore.Mazes;
 using DeveMazeGeneratorCore.Structures;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace DeveMazeGeneratorCore;
 
@@ -14,7 +15,7 @@ public static class PathFinder
     /// </summary>
     /// <param name="maze">The maze.InnerMap</param>
     /// <returns>The shortest path in a list of points</returns>
-    public static IList<MazePoint> Find(IMaze maze)
+    public static MazePoint[] Find(IMaze maze)
     {
         maze.EnsureMinimumSize();
 
@@ -113,6 +114,20 @@ public static class PathFinder
             }
         }
 
-        return points;
+        return points.ToArray();
+    }
+
+    public static MazePointPos[] WithPos(MazePoint[] points)
+    {
+        var pointsPos = new MazePointPos[points.Length];
+
+        for(var i = 0; i < points.Length; i++)
+        {
+            ref var point = ref points[i];
+            var shade = (byte)(i / (double)points.Length * 255.0);
+            pointsPos[i] = new MazePointPos(point.X, point.Y, shade);
+        }
+
+        return pointsPos;
     }
 }

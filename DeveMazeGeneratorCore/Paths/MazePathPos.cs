@@ -1,47 +1,34 @@
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DeveMazeGeneratorCore.Extensions;
 using DeveMazeGeneratorCore.IO;
-using DeveMazeGeneratorCore.Mazes;
 using DeveMazeGeneratorCore.Structures;
 
 namespace DeveMazeGeneratorCore.Paths;
 
-public class MazePath
+public class MazePathPos
 {
     private IBinarySerializer serializer;
-    private MazePoint[] points;
+    private MazePointPos[] points;
 
-    public MazePath(IBinarySerializer serializer, MazePoint[] points)
+    public MazePathPos(IBinarySerializer serializer, MazePointPos[] points)
     {
         this.serializer = serializer;
         this.points = points;
     }
 
-    public MazePath(IBinarySerializer serializer)
+    public MazePathPos(IBinarySerializer serializer)
     {
-        this.serializer= serializer;
+        this.serializer = serializer;
         this.points = [];
     }
 
-    public MazePoint[] Points => points;
+    public MazePointPos[] Points => points;
 
     public IMazePath Clone() => throw new NotImplementedException();
 
-    public void Highlight()
-    {
-        //var points = new MazePointPos[stack.Count];
-
-        //foreach(var item in stack)
-        //{
-        //    byte formulathing = (byte)(points.Count / (double)stack.Count * 255.0);
-        //    points.Add(new MazePointPos(item.X, item.Y, formulathing));
-        //}
-    }
-
     public void Read()
     {
-        points = serializer.ReadArray<MazePoint>();
+        points = serializer.ReadArray<MazePointPos>();
     }
 
     public void Write()
