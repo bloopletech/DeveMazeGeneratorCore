@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace DeveMazeGeneratorCore.IO;
@@ -148,6 +149,16 @@ public class BinarySerializer(Stream stream) : IBinarySerializer, IDisposable, I
         Read(buffer);
         return buffer;
     }
+
+    public async Task<T[]> ReadArrayAsync<T>() where T : struct
+    {
+        var length = ReadInt32();
+        var size = Unsafe.SizeOf<T>();
+        var buffer = new byte[size * length];
+        await ReadExactlyAsync(buffer);
+        return MemoryMarshal.Cast<byte, T>(buffer);
+    }
+
 
     public void Write<T>(T value) where T : struct
     {

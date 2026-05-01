@@ -1,7 +1,6 @@
 using DeveMazeGeneratorCore.Extensions;
 using DeveMazeGeneratorCore.Mazes;
 using DeveMazeGeneratorCore.Structures;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace DeveMazeGeneratorCore;
 
@@ -114,7 +113,7 @@ public static class PathFinder
             }
         }
 
-        return points.ToArray();
+        return [..points];
     }
 
     public static MazePointPos[] WithPos(MazePoint[] points)

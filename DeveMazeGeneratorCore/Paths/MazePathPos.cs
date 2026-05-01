@@ -10,21 +10,17 @@ public class MazePathPos
     private IBinarySerializer serializer;
     private MazePointPos[] points;
 
+    public MazePathPos(IBinarySerializer serializer) : this(serializer, [])
+    {
+    }
+
     public MazePathPos(IBinarySerializer serializer, MazePointPos[] points)
     {
         this.serializer = serializer;
         this.points = points;
     }
 
-    public MazePathPos(IBinarySerializer serializer)
-    {
-        this.serializer = serializer;
-        this.points = [];
-    }
-
     public MazePointPos[] Points => points;
-
-    public IMazePath Clone() => throw new NotImplementedException();
 
     public void Read()
     {
