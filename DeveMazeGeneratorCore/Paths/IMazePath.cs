@@ -1,18 +1,13 @@
+using DeveMazeGeneratorCore.IO;
+
 namespace DeveMazeGeneratorCore.Paths;
 
-public interface IMazePath
+public interface IMazePath : IBinarySerializable
 {
-    Stream Stream { get; }
     int Height { get; }
     int Width { get; }
 
     bool this[int x, int y] { get; set; }
 
     IMazePath Clone();
-    void Highlight();
-
-    void Read();
-    Task ReadAsync();
-    void Write();
-    Task WriteAsync();
 }

@@ -1,40 +1,38 @@
 using System.Runtime.CompilerServices;
-using DeveMazeGeneratorCore.Extensions;
+using DeveMazeGeneratorCore.IO;
 
 namespace DeveMazeGeneratorCore.Mazes;
 
 public class BitGridMaze : IMaze
 {
-    private readonly Stream stream;
+    private readonly IBinarySerializer serializer;
     private readonly int width;
     private readonly int height;
     private readonly BitGrid grid;
 
-    public BitGridMaze(Stream stream)
+    public BitGridMaze(IBinarySerializer serializer)
     {
-        this.stream = stream;
+        this.serializer = serializer;
 
-        using var reader = stream.Reader();
-        width = reader.ReadInt32();
-        height = reader.ReadInt32();
+        width = serializer.ReadInt32();
+        height = serializer.ReadInt32();
 
-        grid = new BitGrid(stream);
+        grid = new BitGrid(serializer);
 
         if(width != grid.Width) throw new ArgumentException($"width {width} != grid width {grid.Width}");
         if(height != grid.Height) throw new ArgumentException($"height {height} != grid height {grid.Height}");
     }
 
-    public BitGridMaze(Stream stream, int width, int height)
+    public BitGridMaze(IBinarySerializer serializer, int width, int height)
     {
-        this.stream = stream;
+        this.serializer = serializer;
         this.width = width;
         this.height = height;
 
-        using var writer = stream.Writer();
-        writer.Write(width);
-        writer.Write(height);
+        serializer.Write(width);
+        serializer.Write(height);
 
-        grid = new BitGrid(stream, width, height);
+        grid = new BitGrid(serializer, width, height);
     }
 
     //public BitGridMaze(BitGridMaze source) : this(new MemoryStream(), source.Width, source.Height, new(source.grid))
@@ -52,7 +50,7 @@ public class BitGridMaze : IMaze
     //    this.grid = grid;
     //}
 
-    public Stream Stream => stream;
+    public IBinarySerializer Serializer => serializer;
     public int Width => width;
     public int Height => height;
 
@@ -71,13 +69,13 @@ public class BitGridMaze : IMaze
     public void Read()
     {
         grid.Read();
-        stream.EnsureCompleted();
+        serializer.EnsureCompleted();
     }
 
     public async Task ReadAsync()
     {
         await grid.ReadAsync();
-        stream.EnsureCompleted();
+        serializer.EnsureCompleted();
     }
 
     public void Write()

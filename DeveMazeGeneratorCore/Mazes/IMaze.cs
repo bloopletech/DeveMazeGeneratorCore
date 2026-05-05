@@ -1,4 +1,4 @@
-using DeveMazeGeneratorCore.Extensions;
+using DeveMazeGeneratorCore.IO;
 
 namespace DeveMazeGeneratorCore.Mazes;
 
@@ -7,18 +7,12 @@ namespace DeveMazeGeneratorCore.Mazes;
 /// 0 = False = Wall = Black
 /// 1 = True = Empty = White
 /// </summary>
-public interface IMaze
+public interface IMaze : IBinarySerializable
 {
-    Stream Stream { get; }
     int Height { get; }
     int Width { get; }
 
     bool this[int x, int y] { get; set; }
 
     IMaze Clone();
-
-    void Read();
-    Task ReadAsync();
-    void Write();
-    Task WriteAsync();
 }

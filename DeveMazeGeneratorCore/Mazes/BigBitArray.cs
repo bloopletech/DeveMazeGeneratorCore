@@ -1,8 +1,6 @@
-using System.Collections;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using DeveMazeGeneratorCore.Extensions;
-using Microsoft.Win32.SafeHandles;
+using DeveMazeGeneratorCore.IO;
 
 namespace DeveMazeGeneratorCore.Mazes;
 
@@ -15,30 +13,22 @@ public class BigBitArray
     private readonly BitArrayHolder[] _chunks;
     private readonly long _bitLength;
 
-    public BigBitArray(SafeFileHandle handle, long offset)
+    public BigBitArray(IBinarySerializer serializer, long offset)
     {
-        _bitLength = RandomAccess.ReadInt64(handle, ref offset);
-        _chunks = InitChunks(handle, offset);
+        _bitLength = serializer.ReadInt64();
+        _chunks = InitChunks(serializer, offset);
     }
 
-    public BigBitArray(FileStream stream) : this(stream.SafeFileHandle, stream.Position)
-    {
-    }
-
-    public BigBitArray(SafeFileHandle handle, long offset, long bitLength)
+    public BigBitArray(IBinarySerializer serializer, long offset, long bitLength)
     {
         _bitLength = bitLength;
-        RandomAccess.Write(handle, ref offset, bitLength);
+        serializer.Write(bitLength);
 
-        _chunks = InitChunks(handle, offset);
-        RandomAccess.EnsureLength(handle, offset, _chunks[^1].End);
+        _chunks = InitChunks(serializer, offset);
+        serializer.EnsureLength(offset, _chunks[^1].End);
     }
 
-    public BigBitArray(FileStream stream, long bitLength) : this(stream.SafeFileHandle, stream.Position, bitLength)
-    {
-    }
-
-    private BitArrayHolder[] InitChunks(SafeFileHandle handle, long offset)
+    private BitArrayHolder[] InitChunks(IBinarySerializer serializer, long offset)
     {
         var byteLength = GetByteArrayLengthFromBitLength(_bitLength);
         // TODO: Find out why BitArray casts to uint etc
@@ -49,10 +39,10 @@ public class BigBitArray
         var chunkStart = offset;
         for(var i = 0; i < chunkCount; i++)
         {
-            chunks[i] = new BitArrayHolder(handle, chunkStart, ChunkByteSize);
+            chunks[i] = new BitArrayHolder(serializer, chunkStart, ChunkByteSize);
             chunkStart += ChunkByteSize;
         }
-        if(lastChunkSize > 0) chunks[^1] = new BitArrayHolder(handle, chunkStart, lastChunkSize);
+        if(lastChunkSize > 0) chunks[^1] = new BitArrayHolder(serializer, chunkStart, lastChunkSize);
 
         return chunks;
     }
@@ -118,9 +108,6 @@ public class BigBitArray
         // TODO: Figure out some background queue writer async thingo
         Write();
     }
-
-    public static BigBitArray Read(FileStream stream) => new BigBitArray(stream);
-    public static async Task<BigBitArray> ReadAsync(FileStream stream) => new BigBitArray(stream);
 
     /// <summary>Determines the number of <see cref="byte"/>s required to store <paramref name="bitLength"/> bits.</summary>
     private static long GetByteArrayLengthFromBitLength(long bitLength)

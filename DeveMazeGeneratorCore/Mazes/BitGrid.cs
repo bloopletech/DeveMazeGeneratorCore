@@ -1,38 +1,33 @@
 using System.Collections;
 using System.Runtime.CompilerServices;
 using DeveMazeGeneratorCore.Extensions;
+using DeveMazeGeneratorCore.IO;
 
 namespace DeveMazeGeneratorCore.Mazes;
 
 public class BitGrid
 {
-    private readonly Stream stream;
+    private readonly IBinarySerializer serializer;
     public readonly int width;
     public readonly int height;
-    private readonly BitArray array;
+    private BitArray array;
 
-    public BitGrid(Stream stream)
+    public BitGrid(IBinarySerializer serializer)
     {
-        this.stream = stream;
+        this.serializer = serializer;
 
-        using var reader = stream.Reader();
-        width = reader.ReadInt32();
-        height = reader.ReadInt32();
+        width = serializer.ReadInt32();
+        height = serializer.ReadInt32();
 
         //array = new BitArray(0);
-        array = new BitArray(reader.ReadInt32());
+        array = new BitArray(serializer.ReadInt32());
     }
 
-    public BitGrid(Stream stream, int width, int height)
+    public BitGrid(IBinarySerializer serializer, int width, int height)
     {
-        this.stream = stream;
+        this.serializer = serializer;
         this.width = width;
         this.height = height;
-
-        using var writer = stream.Writer();
-        writer.Write(width);
-        writer.Write(height);
-
         array = new BitArray(width * height);
     }
 
@@ -57,34 +52,31 @@ public class BitGrid
 
     public void Read()
     {
-        stream.ReadExactly(array.GetArray());
-        //stream.PreservePosition(() => stream.ReadExactly(array.GetArray()));
-        //array = BitArray.Read(stream);
+       // array = new BitArray(serializer.ReadInt32());
+        serializer.ReadExactly(array.GetArray());
     }
 
     public async Task ReadAsync()
     {
-        await stream.ReadExactlyAsync(array.GetArray());
-        //await stream.PreservePosition(async () => await stream.ReadExactlyAsync(array.GetArray()));
-        //array = await BitArray.ReadAsync(stream);
+        //array = new BitArray(serializer.ReadInt32());
+        await serializer.ReadExactlyAsync(array.GetArray());
     }
 
     public void Write()
     {
-        //WriteHeader();
-        array.Write(stream);
+        serializer.Write(width);
+        serializer.Write(height);
+        serializer.Write(array.Length);
+        serializer.Write(array.GetArray());
+        //serializer.WriteArray(array.GetArray());
     }
 
     public async Task WriteAsync()
     {
-        //WriteHeader();
-        await array.WriteAsync(stream);
+        serializer.Write(width);
+        serializer.Write(height);
+        serializer.Write(array.Length);
+        await serializer.WriteAsync(array.GetArray());
+        //await serializer.WriteArrayAsync(array.GetArray());
     }
-
-    //private void WriteHeader()
-    //{
-    //    using var writer = stream.Writer();
-    //    writer.Write(width);
-    //    writer.Write(height);
-    //}
 }

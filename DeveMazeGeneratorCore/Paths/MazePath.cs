@@ -1,47 +1,27 @@
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using DeveMazeGeneratorCore.Extensions;
 using DeveMazeGeneratorCore.IO;
-using DeveMazeGeneratorCore.Mazes;
 using DeveMazeGeneratorCore.Structures;
 
 namespace DeveMazeGeneratorCore.Paths;
 
-public class MazePath
+public class MazePath(IBinarySerializer serializer, MazePoint[] points) : IBinarySerializable
 {
-    private IBinarySerializer serializer;
-    private MazePoint[] points;
-
-    public MazePath(IBinarySerializer serializer, MazePoint[] points)
+    public MazePath(IBinarySerializer serializer) : this(serializer, [])
     {
-        this.serializer = serializer;
-        this.points = points;
     }
 
-    public MazePath(IBinarySerializer serializer)
-    {
-        this.serializer= serializer;
-        this.points = [];
-    }
-
+    public IBinarySerializer Serializer => serializer;
     public MazePoint[] Points => points;
 
     public IMazePath Clone() => throw new NotImplementedException();
 
-    public void Highlight()
-    {
-        //var points = new MazePointPos[stack.Count];
-
-        //foreach(var item in stack)
-        //{
-        //    byte formulathing = (byte)(points.Count / (double)stack.Count * 255.0);
-        //    points.Add(new MazePointPos(item.X, item.Y, formulathing));
-        //}
-    }
-
     public void Read()
     {
         points = serializer.ReadArray<MazePoint>();
+    }
+
+    public async Task ReadAsync()
+    {
+        points = await serializer.ReadArrayAsync<MazePoint>();
     }
 
     public void Write()
@@ -51,27 +31,6 @@ public class MazePath
 
     public async Task WriteAsync()
     {
-        using var writer = stream.Writer();
-        writer.Write((ushort)MazePathType.MazePath);
-        writer.Write(points.Length);
-        await stream.WriteAsync(new ReadOnlyMemory<MazePoint>(points));
-    }
-
-    public static IMazePath Read(Stream stream)
-    {
-        using var reader = stream.Reader();
-        var length = reader.ReadInt32();
-        var points = new MazePoint[length];
-        stream.ReadExactly(MemoryMarshal.AsBytes(points.AsSpan()));
-        return new MazePath(points);
-    }
-
-    public static async Task<IMazePath> ReadAsync(Stream stream)
-    {
-        using var reader = stream.Reader();
-        var length = reader.ReadInt32();
-        var points = new MazePoint[length];
-        await stream.ReadExactlyAsync(MemoryMarshal.AsBytes(points.AsSpan()));
-        return new MazePath(points);
+        await serializer.WriteArrayAsync<MazePoint>(points);
     }
 }

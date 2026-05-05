@@ -1,11 +1,11 @@
 using System.Collections;
 using System.Runtime.CompilerServices;
 using DeveMazeGeneratorCore.Extensions;
-using Microsoft.Win32.SafeHandles;
+using DeveMazeGeneratorCore.IO;
 
 namespace DeveMazeGeneratorCore.Mazes;
 
-public class BitArrayHolder(SafeFileHandle handle, long offset, long size)
+public class BitArrayHolder(IBinarySerializer serializer, long offset, long size)
 {
     private BitArray? array;
 
@@ -36,14 +36,15 @@ public class BitArrayHolder(SafeFileHandle handle, long offset, long size)
     public void Load()
     {
         if(array != null) return;
-        array = BitArray.Read(handle, offset, size);
+        array = new BitArray((int)size * 8);
+        serializer.ReadExactly(offset, array.GetArray());
         //LastUsedAt = Environment.TickCount;
     }
 
     public void Evict()
     {
         if(array == null) return;
-        array.Write(handle, offset, size);
+        serializer.Write(offset, array.GetArray());
         array = null;
         //LastUsedAt = long.MaxValue;
     }

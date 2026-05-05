@@ -1,5 +1,8 @@
+using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using DeveMazeGeneratorCore.Extensions;
+using Microsoft.Win32.SafeHandles;
 
 namespace DeveMazeGeneratorCore.IO;
 
@@ -7,9 +10,10 @@ public class BinarySerializer(Stream stream) : IBinarySerializer, IDisposable, I
 {
     private readonly BinaryReader reader = new BinaryReader(stream);
     private readonly BinaryWriter writer = new BinaryWriter(stream);
+    private readonly SafeFileHandle? handle = stream is FileStream fileStream ? fileStream.SafeFileHandle : null;
     private bool disposed;
 
-    public Stream BaseStream => stream;
+    public Stream Stream => stream;
     public void Close() => stream.Close();
     public void Dispose() => stream.Dispose();
     public ValueTask DisposeAsync() => stream.DisposeAsync();
@@ -38,6 +42,40 @@ public class BinarySerializer(Stream stream) : IBinarySerializer, IDisposable, I
     public uint ReadUInt32() => reader.ReadUInt32();
     public ulong ReadUInt64() => reader.ReadUInt64();
 
+    public int PeekChar(long position) => reader.PeekChar();
+    public int Read(long position) => reader.Read();
+    public byte ReadByte(long position) => reader.ReadByte();
+    public int Read(long position, char[] buffer, int index, int count) => reader.Read(buffer, index, count);
+    public int Read(long position, Span<char> buffer) => reader.Read(buffer);
+    public int Read7BitEncodedInt(long position) => reader.Read7BitEncodedInt();
+    public long Read7BitEncodedInt64(long position) => reader.Read7BitEncodedInt64();
+    public bool ReadBoolean(long position) => reader.ReadBoolean();
+    public byte[] ReadBytes(long position, int count) => reader.ReadBytes(count);
+    public char ReadChar(long position) => reader.ReadChar();
+    public char[] ReadChars(long position, int count) => reader.ReadChars(count);
+    public decimal ReadDecimal(long position) => reader.ReadDecimal();
+    public double ReadDouble(long position) => reader.ReadDouble();
+    public Half ReadHalf(long position) => reader.ReadHalf();
+    public short ReadInt16(long position) => reader.ReadInt16();
+    public int ReadInt32(long position)
+    {
+        Span<byte> buffer = stackalloc byte[sizeof(int)];
+        RandomAccess.ReadExactly(handle!, buffer, offset);
+        return BinaryPrimitives.ReadInt32LittleEndian(buffer);
+    }
+    public long ReadInt64(long position)
+    {
+        Span<byte> buffer = stackalloc byte[sizeof(long)];
+        RandomAccess.ReadExactly(handle!, buffer, offset);
+        return BinaryPrimitives.ReadInt64LittleEndian(buffer);
+    }
+    public sbyte ReadSByte(long position) => reader.ReadSByte();
+    public float ReadSingle(long position) => reader.ReadSingle();
+    public string ReadString(long position) => reader.ReadString();
+    public ushort ReadUInt16(long position) => reader.ReadUInt16();
+    public uint ReadUInt32(long position) => reader.ReadUInt32();
+    public ulong ReadUInt64(long position) => reader.ReadUInt64();
+
     public long Seek(int offset, SeekOrigin origin) => writer.Seek(offset, origin);
     public void Write(bool value) => writer.Write(value);
     public void Write(byte value) => writer.Write(value);
@@ -61,6 +99,40 @@ public class BinarySerializer(Stream stream) : IBinarySerializer, IDisposable, I
     public void Write7BitEncodedInt(int value) => writer.Write(value);
     public void Write7BitEncodedInt64(long value) => writer.Write(value);
 
+    public void Write(long position, bool value) => writer.Write(value);
+    public void Write(long position, byte value) => writer.Write(value);
+    public void Write(long position, byte[] buffer) => writer.Write(buffer);
+    public void Write(long position, char ch) => writer.Write(ch);
+    public void Write(long position, char[] chars) => writer.Write(chars);
+    public void Write(long position, char[] chars, int index, int count) => writer.Write(chars, index, count);
+    public void Write(long position, decimal value) => writer.Write(value);
+    public void Write(long position, double value) => writer.Write(value);
+    public void Write(long position, float value) => writer.Write(value);
+    public void Write(long position, Half value) => writer.Write(value);
+    public void Write(long position, int value)
+    {
+        Span<byte> buffer = stackalloc byte[sizeof(int)];
+        BinaryPrimitives.WriteInt32LittleEndian(buffer, value);
+        EnsureLength(position, buffer.Length);
+        RandomAccess.Write(handle!, buffer, position);
+    }
+    public void Write(long position, long value)
+    {
+        Span<byte> buffer = stackalloc byte[sizeof(long)];
+        BinaryPrimitives.WriteInt64LittleEndian(buffer, value);
+        EnsureLength(position, buffer.Length);
+        RandomAccess.Write(handle!, buffer, position);
+    }
+    public void Write(long position, ReadOnlySpan<char> chars) => writer.Write(chars);
+    public void Write(long position, sbyte value) => writer.Write(value);
+    public void Write(long position, short value) => writer.Write(value);
+    public void Write(long position, string value) => writer.Write(value);
+    public void Write(long position, uint value) => writer.Write(value);
+    public void Write(long position, ulong value) => writer.Write(value);
+    public void Write(long position, ushort value) => writer.Write(value);
+    public void Write7BitEncodedInt(long position, int value) => writer.Write(value);
+    public void Write7BitEncodedInt64(long position, long value) => writer.Write(value);
+
     public bool CanRead => stream.CanRead;
     public bool CanSeek => stream.CanSeek;
     public bool CanTimeout => stream.CanTimeout;
@@ -80,6 +152,19 @@ public class BinarySerializer(Stream stream) : IBinarySerializer, IDisposable, I
     {
         get => stream.WriteTimeout;
         set => stream.WriteTimeout = value;
+    }
+    public bool IsCompleted => stream.Position == stream.Length;
+    public bool HasMore => !IsCompleted;
+
+    public void EnsureCompleted()
+    {
+        if(HasMore) throw new InvalidDataException("Stream contains more data than expected");
+    }
+
+    public void EnsureLength(long fileOffset, long size)
+    {
+        var requiredLength = fileOffset + size;
+        if(Length < requiredLength) SetLength(requiredLength);
     }
 
     public IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback, object state) => stream.BeginRead(buffer, offset, count, callback, state);
@@ -142,6 +227,11 @@ public class BinarySerializer(Stream stream) : IBinarySerializer, IDisposable, I
         ReadExactly(MemoryMarshal.AsBytes(buffer));
     }
 
+    public async Task ReadAsync<T>(Memory<T> buffer) where T : struct
+    {
+
+    }
+
     public T[] ReadArray<T>() where T : struct
     {
         var length = ReadInt32();
@@ -178,15 +268,20 @@ public class BinarySerializer(Stream stream) : IBinarySerializer, IDisposable, I
         Write(MemoryMarshal.AsBytes(buffer));
     }
 
+    public async Task WriteAsync<T>(ReadOnlyMemory<T> buffer) where T : struct
+    {
+        Write(MemoryMarshal.AsBytes(buffer));
+    }
+
     public void WriteArray<T>(ReadOnlySpan<T> buffer) where T : struct
     {
         Write(buffer.Length);
         Write(buffer);
     }
 
-
-    public async Task WriteAsync<T>(ReadOnlyMemory<T> buffer) where T : struct
+    public async Task WriteArrayAsync<T>(ReadOnlyMemory<T> buffer) where T : struct
     {
-        Write(MemoryMarshal.AsBytes(buffer));
+        Write(buffer.Length);
+        Write(buffer);
     }
 }

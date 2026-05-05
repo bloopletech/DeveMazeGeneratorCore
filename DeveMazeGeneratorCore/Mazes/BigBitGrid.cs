@@ -1,6 +1,5 @@
 using System.Runtime.CompilerServices;
-using DeveMazeGeneratorCore.Extensions;
-using Microsoft.Win32.SafeHandles;
+using DeveMazeGeneratorCore.IO;
 
 namespace DeveMazeGeneratorCore.Mazes;
 
@@ -10,28 +9,20 @@ public class BigBitGrid : IDisposable, IAsyncDisposable
     public readonly int height;
     private readonly BigBitArray array;
 
-    public BigBitGrid(SafeFileHandle handle, long offset)
+    public BigBitGrid(IBinarySerializer serializer, long offset)
     {
-        width = RandomAccess.ReadInt32(handle, ref offset);
-        height = RandomAccess.ReadInt32(handle, ref offset);
-        array = new BigBitArray(handle, offset, (long)width * height);
+        width = serializer.ReadInt32();
+        height = serializer.ReadInt32();
+        array = new BigBitArray(serializer, serializer.Position, (long)width * height);
     }
 
-    public BigBitGrid(FileStream stream) : this(stream.SafeFileHandle, stream.Position)
-    {
-    }
-
-    public BigBitGrid(SafeFileHandle handle, long offset, int width, int height)
+    public BigBitGrid(IBinarySerializer serializer, long offset, int width, int height)
     {
         this.width = width;
         this.height = height;
-        RandomAccess.Write(handle, ref offset, width);
-        RandomAccess.Write(handle, ref offset, height);
-        array = new BigBitArray(handle, offset, (long)width * height);
-    }
-
-    public BigBitGrid(FileStream stream, int width, int height) : this(stream.SafeFileHandle, stream.Position, width, height)
-    {
+        serializer.Write(width);
+        serializer.Write(height);
+        array = new BigBitArray(serializer, serializer.Position, (long)width * height);
     }
 
     public int Width => width;

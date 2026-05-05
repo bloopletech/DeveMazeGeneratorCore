@@ -1,11 +1,11 @@
 using System.Runtime.CompilerServices;
-using DeveMazeGeneratorCore.Extensions;
+using DeveMazeGeneratorCore.IO;
 
 namespace DeveMazeGeneratorCore.Mazes;
 
 public class BigBitGridMaze : IMaze
 {
-    private readonly Stream stream;
+    private readonly IBinarySerializer serializer;
     private readonly int width;
     private readonly int height;
     private readonly BigBitGrid grid;
@@ -14,37 +14,27 @@ public class BigBitGridMaze : IMaze
     //{
     //}
 
-    public BigBitGridMaze(FileStream stream)
+    public BigBitGridMaze(IBinarySerializer serializer)
     {
-        this.stream = stream;
-        var handle = stream.SafeFileHandle;
-        var offset = stream.Position;
-
-        width = RandomAccess.ReadInt32(handle, ref offset);
-        height = RandomAccess.ReadInt32(handle, ref offset);
-        grid = new BigBitGrid(handle, offset);
+        this.serializer = serializer;
+        width = serializer.ReadInt32();
+        height = serializer.ReadInt32();
+        grid = new BigBitGrid(serializer, serializer.Position);
 
         if(width != grid.Width) throw new ArgumentException($"width {width} != grid width {grid.Width}");
         if(height != grid.Height) throw new ArgumentException($"height {height} != grid height {grid.Height}");
     }
 
-    public BigBitGridMaze(FileStream stream, int width, int height)
+    public BigBitGridMaze(IBinarySerializer serializer, int width, int height)
     {
-        this.stream = stream;
-        var handle = stream.SafeFileHandle;
-        var offset = stream.Position;
-
+        this.serializer = serializer;
         this.width = width;
         this.height = height;
-
-        //RandomAccess.Write(handle, ref offset, (ushort)MazeType.BitGridMaze);
-        RandomAccess.Write(handle, ref offset, width);
-        RandomAccess.Write(handle, ref offset, height);
-        grid = new BigBitGrid(handle, offset, width, height);
+        grid = new BigBitGrid(serializer, serializer.Position, width, height);
     }
 
     public MazeType Type => MazeType.BigBitGridMaze;
-    public Stream Stream => stream;
+    public IBinarySerializer Serializer => serializer;
     public int Width => width;
     public int Height => height;
 
@@ -70,11 +60,17 @@ public class BigBitGridMaze : IMaze
 
     public void Write()
     {
+        //RandomAccess.Write(handle, ref offset, (ushort)MazeType.BitGridMaze);
+        serializer.Write(width);
+        serializer.Write(height);
         grid.Dispose();
     }
 
     public async Task WriteAsync()
     {
+        //RandomAccess.Write(handle, ref offset, (ushort)MazeType.BitGridMaze);
+        serializer.Write(width);
+        serializer.Write(height);
         await grid.DisposeAsync();
     }
 }
