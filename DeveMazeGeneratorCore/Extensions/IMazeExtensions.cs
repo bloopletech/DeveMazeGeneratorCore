@@ -1,4 +1,3 @@
-using System.Text;
 using DeveMazeGeneratorCore.Mazes;
 
 namespace DeveMazeGeneratorCore.Extensions;

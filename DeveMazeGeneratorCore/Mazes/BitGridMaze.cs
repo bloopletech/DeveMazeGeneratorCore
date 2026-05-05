@@ -28,10 +28,6 @@ public class BitGridMaze : IMaze
         this.serializer = serializer;
         this.width = width;
         this.height = height;
-
-        serializer.Write(width);
-        serializer.Write(height);
-
         grid = new BitGrid(serializer, width, height);
     }
 
@@ -80,20 +76,15 @@ public class BitGridMaze : IMaze
 
     public void Write()
     {
-        //WriteHeader(stream);
+        serializer.Write(width);
+        serializer.Write(height);
         grid.Write();
     }
 
     public async Task WriteAsync()
     {
-        //WriteHeader(stream);
+        serializer.Write(width);
+        serializer.Write(height);
         await grid.WriteAsync();
     }
-
-    //private void WriteHeader(Stream stream)
-    //{
-    //    using var writer = stream.Writer();
-    //    writer.Write(Width);
-    //    writer.Write(Height);
-    //}
 }

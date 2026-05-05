@@ -74,8 +74,8 @@ public static class DeveMazeGeneratorCore
     public static IMazePath Solve(Stream stream, IMaze maze)
     {
         var points = PathFinder.Find(maze);
-        var path = new MazePath(points.ToArray());
-        path.Write(stream);
+        var path = new MazePath(new BinarySerializer(stream), points);
+        path.Write();
         return path;
     }
 
