@@ -5,29 +5,15 @@ namespace DeveMazeGeneratorCore.Mazes;
 
 public class BitGridMaze : IMaze
 {
-    private readonly IBinarySerializer serializer;
-    private readonly int width;
-    private readonly int height;
     private readonly BitGrid grid;
 
     public BitGridMaze(IBinarySerializer serializer)
     {
-        this.serializer = serializer;
-
-        width = serializer.ReadInt32();
-        height = serializer.ReadInt32();
-
         grid = new BitGrid(serializer);
-
-        if(width != grid.Width) throw new ArgumentException($"width {width} != grid width {grid.Width}");
-        if(height != grid.Height) throw new ArgumentException($"height {height} != grid height {grid.Height}");
     }
 
     public BitGridMaze(IBinarySerializer serializer, int width, int height)
     {
-        this.serializer = serializer;
-        this.width = width;
-        this.height = height;
         grid = new BitGrid(serializer, width, height);
     }
 
