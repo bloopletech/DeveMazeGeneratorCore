@@ -12,7 +12,9 @@ namespace HugeMazes;
 public static class HugeMazes
 {
     public static IStore Create(string fileName) => new StreamStore(File.Open(fileName, FileMode.CreateNew));
+    public static IStore CreateSFH(string fileName) => new SafeFileHandleStore(File.OpenHandle(fileName, FileMode.CreateNew), fileName);
     public static IStore Open(string fileName) => new StreamStore(File.Open(fileName, FileMode.Open));
+    public static IStore OpenSFH(string fileName) => new SafeFileHandleStore(File.OpenHandle(fileName, FileMode.Open), fileName);
 
     public static IMaze Load(IStore store) => MazeSerializer.Read(store);
     public static IMazePath LoadPath(IStore store) => MazePathSerializer.Read(store);
