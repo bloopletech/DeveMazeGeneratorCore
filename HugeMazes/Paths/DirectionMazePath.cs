@@ -18,6 +18,7 @@ public class DirectionMazePath(
     private bool HasStart => start != MazePoint.Empty;
 
     public override long Extent => directions.Extent + Header.SizeOf;
+    public Guid MazeId { get; set; }
     public long Count => HasStart ? directions.Count + 1 : 0; // Fencepost
 
     public MazePoint this[long index]
@@ -118,14 +119,14 @@ public class DirectionMazePath(
 
     public override void Read()
     {
-        (start, end, delta) = store.Read<Header>(0);
+        (MazeId, start, end, delta) = store.Read<Header>(0);
         directions = new(store.Offset<Header>(true));
         directions.Read();
     }
 
     public override void Write()
     {
-        store.Write(0, new Header(start, end, delta));
+        store.Write(0, new Header(MazeId, start, end, delta));
         directions.Write();
     }
 
@@ -140,7 +141,7 @@ public class DirectionMazePath(
         return result;
     }
 
-    private record struct Header(MazePoint Start, MazePoint End, int Delta)
+    private record struct Header(Guid MazeId, MazePoint Start, MazePoint End, int Delta)
     {
         public static readonly int SizeOf = IStore.SizeOf<Header>();
     }

@@ -11,6 +11,7 @@ public class MazePath(IStore store, bool leaveOpen = false) : Storable(store, le
     private LongList<MazePoint> points = new(store);
 
     public override long Extent => points.Extent + MazeSize.SizeOf;
+    public Guid MazeId { get; set; }
 
     public long Count => points.Count;
 
@@ -40,12 +41,14 @@ public class MazePath(IStore store, bool leaveOpen = false) : Storable(store, le
 
     public override void Read()
     {
-        points = new(store);
+        MazeId = store.Read<Guid>(0);
+        points = new(store.Offset<Guid>(true));
         points.Read();
     }
 
     public override void Write()
     {
+        store.Write(0, MazeId);
         points.Write();
     }
 
