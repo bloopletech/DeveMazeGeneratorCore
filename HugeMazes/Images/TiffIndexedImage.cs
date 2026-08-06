@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using HugeMazes.Collections;
 using HugeMazes.IO;
 using HugeMazes.Structures;
@@ -7,16 +8,18 @@ using HugeMazes.Structures;
 namespace HugeMazes.Images;
 
 // Based on https://paulbourke.net/dataformats/tiff/
-public class TiffIndexedImage(IStore store, MazeSize size, MazeColor[] palette) : Storable(store, false), IImage<byte>
+public class TiffIndexedImage(IStore store, Guid mazeId, MazeSize size, MazeColor[] palette) : Storable(store, false), IImage<byte>
 {
     public const int PaletteSize = 256;
     private const long PaletteOffset = 1024;
+    private const long MazeIdOffset = 3072;
     private const long ArrayOffset = 4096;
 
     private readonly LongArray<byte> array = new(store.Offset(ArrayOffset - sizeof(long), true), size.Area, true);
     private bool written;
 
     public override long Extent => array.Extent + ArrayOffset;
+    public Guid MazeId => mazeId;
     public MazeSize Size => size;
     public int Width => size.Width;
     public int Height => size.Height;
@@ -57,12 +60,17 @@ public class TiffIndexedImage(IStore store, MazeSize size, MazeColor[] palette) 
             0x00,
             0x00,
             ..BitConverter.GetBytes(16L),
-            ..BitConverter.GetBytes(10L),
+            ..BitConverter.GetBytes(11L),
             ..new TiffTag(TiffTag.TagType.Width, [(uint)size.Width]),
             ..new TiffTag(TiffTag.TagType.Height, [(uint)size.Height]),
             ..new TiffTag(TiffTag.TagType.BitsPerSample, [0x08]),
             ..new TiffTag(TiffTag.TagType.Compression, [0x08]),
             ..new TiffTag(TiffTag.TagType.PhotometricInterpolation, [0x03]),
+            ..new TiffTag(
+                TiffTag.TagType.ImageDescription,
+                TiffTag.ValueType.Ascii,
+                mazeId.ToString().Length,
+                BitConverter.GetBytes(MazeIdOffset)),
             ..new TiffTag(TiffTag.TagType.StripOffsets, [ArrayOffset]),
             ..new TiffTag(TiffTag.TagType.RowsPerStrip, [(uint)size.Width]),
             ..new TiffTag(TiffTag.TagType.StripByteCount, [0L]),
@@ -80,6 +88,7 @@ public class TiffIndexedImage(IStore store, MazeSize size, MazeColor[] palette) 
 
         store.Write(0, header);
         store.Write(PaletteOffset, MemoryMarshal.AsBytes(MapPalette()));
+        store.Write<byte>(MazeIdOffset, [..Encoding.ASCII.GetBytes(mazeId.ToString()), 0x00]);
         array.Write();
 
         var deflateStore = store.Offset(ArrayOffset, true);

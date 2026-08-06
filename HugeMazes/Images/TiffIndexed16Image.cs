@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using HugeMazes.Collections;
 using HugeMazes.Extensions;
 using HugeMazes.IO;
@@ -11,22 +12,26 @@ namespace HugeMazes.Images;
 public class TiffIndexed16Image : Storable, IImage<byte>
 {
     public const int PaletteSize = 16;
-    private const long HeaderLength = 252;
+    private const long HeaderLength = 272;
     private const long ColorMapCount = PaletteSize * 3;
     private const long ColorMapLength = ColorMapCount * sizeof(short);
-    private const long ArrayOffset = HeaderLength + ColorMapLength;
+    private const long MazeIdLength = 37;
+    private const long ArrayOffset = HeaderLength + ColorMapLength + MazeIdLength;
 
     private readonly LongArray<byte> array;
+    private readonly Guid mazeId;
     private readonly MazeSize size;
     private readonly MazeColor[] palette;
     private readonly int arrayWidth;
 
     public TiffIndexed16Image(
         IStore store,
+        Guid mazeId,
         MazeSize size,
         MazeColor[] palette,
         bool leaveOpen = false) : base(store, leaveOpen)
     {
+        this.mazeId = mazeId;
         this.size = size;
         this.palette = palette;
         arrayWidth = size.Width.RoundUpEven();
@@ -34,6 +39,7 @@ public class TiffIndexed16Image : Storable, IImage<byte>
     }
 
     public override long Extent => array.Extent + ArrayOffset;
+    public Guid MazeId => mazeId;
     public MazeSize Size => size;
     public int Width => size.Width;
     public int Height => size.Height;
@@ -88,12 +94,17 @@ public class TiffIndexed16Image : Storable, IImage<byte>
             0x00,
             0x00,
             ..BitConverter.GetBytes(16L),
-            ..BitConverter.GetBytes(11L),
+            ..BitConverter.GetBytes(12L),
             ..new TiffTag(TiffTag.TagType.Width, [(uint)size.Width]),
             ..new TiffTag(TiffTag.TagType.Height, [(uint)size.Height]),
             ..new TiffTag(TiffTag.TagType.BitsPerSample, [0x04]),
             ..new TiffTag(TiffTag.TagType.Compression, [0x01]),
             ..new TiffTag(TiffTag.TagType.PhotometricInterpolation, [0x03]),
+            ..new TiffTag(
+                TiffTag.TagType.ImageDescription,
+                TiffTag.ValueType.Ascii,
+                mazeId.ToString().Length,
+                BitConverter.GetBytes(HeaderLength + ColorMapLength)),
             ..new TiffTag(TiffTag.TagType.StripOffsets, [(ulong)ArrayOffset + sizeof(long)]),
             ..new TiffTag(TiffTag.TagType.Orientation, [0x01]),
             ..new TiffTag(TiffTag.TagType.RowsPerStrip, [uint.MaxValue]),
@@ -102,6 +113,8 @@ public class TiffIndexed16Image : Storable, IImage<byte>
             ..new TiffTag(TiffTag.TagType.ColorMap, TiffTag.ValueType.Short, ColorMapCount, BitConverter.GetBytes(HeaderLength)),
             ..BitConverter.GetBytes(0L),
             ..MemoryMarshal.AsBytes(MapPalette()),
+            ..Encoding.ASCII.GetBytes(mazeId.ToString()),
+            0x00,
         ];
 
         store.Write(0, header);

@@ -18,9 +18,9 @@ public class LongBitGridMaze : Storable, IMaze
         array = null!;
     }
 
-    public LongBitGridMaze(IStore store, MazeSize size, bool leaveOpen = false) : base(store, leaveOpen)
+    public LongBitGridMaze(IStore store, Guid id, MazeSize size, bool leaveOpen = false) : base(store, leaveOpen)
     {
-        id = Guid.NewGuid();
+        this.id = id;
         this.size = size;
         array = new(store.Offset<Header>(true), size.Area);
     }

@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace HugeMazes.Images;
 
@@ -9,7 +10,7 @@ public struct TiffTag(TiffTag.TagType type, TiffTag.ValueType valueType, long le
         type,
         ValueType.Int,
         values.Length,
-        [.. MemoryMarshal.AsBytes(values)])
+        [..MemoryMarshal.AsBytes(values)])
     {
     }
 
@@ -17,7 +18,7 @@ public struct TiffTag(TiffTag.TagType type, TiffTag.ValueType valueType, long le
         type,
         ValueType.Long,
         values.Length,
-        [.. MemoryMarshal.AsBytes(values)])
+        [..MemoryMarshal.AsBytes(values)])
     {
     }
 
@@ -25,9 +26,17 @@ public struct TiffTag(TiffTag.TagType type, TiffTag.ValueType valueType, long le
         type,
         ValueType.Short,
         values.Length,
-        [.. MemoryMarshal.AsBytes(values)])
+        [..MemoryMarshal.AsBytes(values)])
     {
     }
+
+    public TiffTag(TagType type, string value) : this(
+        type,
+        ValueType.Ascii,
+        Encoding.ASCII.GetByteCount(value) + 1,
+        [..Encoding.ASCII.GetBytes(value), 0x00])
+        {
+        }
 
     public readonly byte[] Bytes => [
         ..BitConverter.GetBytes((ushort)type),
@@ -46,6 +55,7 @@ public struct TiffTag(TiffTag.TagType type, TiffTag.ValueType valueType, long le
         BitsPerSample = 0x102,
         Compression = 0x103,
         PhotometricInterpolation = 0x106,
+        ImageDescription = 0x10E,
         StripOffsets = 0x111,
         Orientation = 0x112,
         SamplesPerPixel = 0x115,
@@ -54,12 +64,14 @@ public struct TiffTag(TiffTag.TagType type, TiffTag.ValueType valueType, long le
         MinimumSampleValue = 0x118,
         MaximumSampleValue = 0x119,
         PlanarConfiguration = 0x11C,
+        Software = 0x131,
         ColorMap = 0x140,
         SampleFormat = 0x153
     }
 
     public enum ValueType : ushort
     {
+        Ascii = 0x02,
         Short = 0x03,
         Int = 0x04,
         Long = 0x10

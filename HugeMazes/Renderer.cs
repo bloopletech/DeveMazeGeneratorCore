@@ -10,7 +10,7 @@ public static class Renderer
 {
     public static IImage<byte> Render(IStore destination, IMaze maze, RenderPalette palette)
     {
-        var image = new TiffIndexedImage(destination, maze.Size, palette.Indexed.Palette);
+        var image = new TiffIndexedImage(destination, maze.Id, maze.Size, palette.Indexed.Palette);
 
         for(int y = 0; y < image.Height; y++)
         {
@@ -28,7 +28,7 @@ public static class Renderer
 
     public static IImage<MazeColor> RenderShaded(IStore destination, IMaze maze, RenderPalette palette)
     {
-        var image = new TiffImage(destination, maze.Size);
+        var image = new TiffImage(destination, maze.Id, maze.Size);
 
         for(int y = 0; y < image.Height; y++)
         {
@@ -46,13 +46,11 @@ public static class Renderer
 
     public static IImage Render(IStore destination, IMaze maze, IMazePath path, RenderPalette palette, bool plain)
     {
-        path.EnsureMazeId(maze);
         return plain ? Render(destination, maze, path, palette) : RenderShaded(destination, maze, path, palette);
     }
 
     public static IImage<byte> Render(IStore destination, IMaze maze, IMazePath path, RenderPalette palette)
     {
-        path.EnsureMazeId(maze);
         var image = Render(destination, maze, palette);
 
         foreach(var point in path) image[point.X, point.Y] = RenderPalette.Index.Path;
@@ -64,7 +62,6 @@ public static class Renderer
 
     public static IImage<MazeColor> RenderShaded(IStore destination, IMaze maze, IMazePath path, RenderPalette palette)
     {
-        path.EnsureMazeId(maze);
         var image = RenderShaded(destination, maze, palette);
 
         var i = 0;

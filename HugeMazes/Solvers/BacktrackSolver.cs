@@ -9,7 +9,6 @@ public class BacktrackSolver(IMaze maze, IMazePath path) : ISolver
     public void Solve()
     {
         maze.EnsureMinimumSize();
-        path.MazeId = maze.Id;
 
         var start = new MazePoint(1, 1);
         var end = new MazePoint(maze.Width - 2, maze.Height - 2);

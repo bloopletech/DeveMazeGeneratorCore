@@ -18,9 +18,9 @@ public class BitGridMaze : Storable, IMaze
         array = null!;
     }
 
-    public BitGridMaze(IStore store, MazeSize size, bool leaveOpen = false) : base(store, leaveOpen)
+    public BitGridMaze(IStore store, Guid id, MazeSize size, bool leaveOpen = false) : base(store, leaveOpen)
     {
-        id = Guid.NewGuid();
+        this.id = id;
         this.size = size;
         array = new((int)size.Area);
     }
