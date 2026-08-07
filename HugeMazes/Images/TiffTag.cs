@@ -4,47 +4,23 @@ using System.Text;
 namespace HugeMazes.Images;
 
 // Based on https://paulbourke.net/dataformats/tiff/
-public struct TiffTag(TiffTag.TagType type, TiffTag.ValueType valueType, long length, byte[] value)
+public struct TiffTag(TiffTag.TagType type, TiffTag.ValueType valueType, long count, byte[] value)
 {
-    public TiffTag(TagType type, uint[] values) : this(
-        type,
-        ValueType.Int,
-        values.Length,
-        [..MemoryMarshal.AsBytes(values)])
-    {
-    }
+    public const int Length = 20;
 
-    public TiffTag(TagType type, ulong[] values) : this(
-        type,
-        ValueType.Long,
-        values.Length,
-        [..MemoryMarshal.AsBytes(values)])
-    {
-    }
+    public readonly byte[] Value => value;
 
-    public TiffTag(TagType type, ushort[] values) : this(
-        type,
-        ValueType.Short,
-        values.Length,
-        [..MemoryMarshal.AsBytes(values)])
-    {
-    }
-
-    public TiffTag(TagType type, string value) : this(
-        type,
-        ValueType.Ascii,
-        Encoding.ASCII.GetByteCount(value) + 1,
-        [..Encoding.ASCII.GetBytes(value), 0x00])
-        {
-        }
+    public readonly bool IsPointer => value.Length > 8;
 
     public readonly byte[] Bytes => [
         ..BitConverter.GetBytes((ushort)type),
-            ..BitConverter.GetBytes((ushort)valueType),
-            ..BitConverter.GetBytes((ulong)length),
-            ..value,
-            ..new byte[8 - value.Length]
+        ..BitConverter.GetBytes((ushort)valueType),
+        ..BitConverter.GetBytes((ulong)count),
+        ..ValueBytes,
+        ..new byte[8 - ValueBytes.Length]
     ];
+
+    private readonly byte[] ValueBytes => IsPointer ? [] : value;
 
     public readonly IEnumerator<byte> GetEnumerator() => Bytes.AsEnumerable().GetEnumerator();
 

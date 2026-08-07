@@ -47,36 +47,22 @@ public class TiffImage(IStore store, Guid mazeId, MazeSize size) : Storable(stor
         if(written) return;
         written = true;
 
-        var magic = BitConverter.IsLittleEndian ? (byte)0x49 : (byte)0x4D;
-        byte[] header = [
-            magic,
-            magic,
-            ..BitConverter.GetBytes((ushort)0x2B),
-            ..BitConverter.GetBytes((ushort)0x08),
-            0x00,
-            0x00,
-            ..BitConverter.GetBytes(16L),
-            ..BitConverter.GetBytes(14L),
-            ..new TiffTag(TiffTag.TagType.Width, [(uint)size.Width]),
-            ..new TiffTag(TiffTag.TagType.Height, [(uint)size.Height]),
-            ..new TiffTag(TiffTag.TagType.BitsPerSample, [0x08, 0x08, 0x08]),
-            ..new TiffTag(TiffTag.TagType.Compression, [0x08]),
-            ..new TiffTag(TiffTag.TagType.PhotometricInterpolation, [0x02]),
-            ..new TiffTag(
-                TiffTag.TagType.ImageDescription,
-                TiffTag.ValueType.Ascii,
-                mazeId.ToString().Length,
-                BitConverter.GetBytes(MazeIdOffset)),
-            ..new TiffTag(TiffTag.TagType.StripOffsets, [ArrayOffset]),
-            ..new TiffTag(TiffTag.TagType.SamplesPerPixel, [0x03]),
-            ..new TiffTag(TiffTag.TagType.RowsPerStrip, [(uint)size.Width]),
-            ..new TiffTag(TiffTag.TagType.StripByteCount, [0L]),
-            ..new TiffTag(TiffTag.TagType.MinimumSampleValue, [0, 0, 0]),
-            ..new TiffTag(TiffTag.TagType.MaximumSampleValue, [0xFF, 0xFF, 0xFF]),
-            ..new TiffTag(TiffTag.TagType.PlanarConfiguration, [0x01]),
-            ..new TiffTag(TiffTag.TagType.SampleFormat, [0x01, 0x01, 0x01]),
-            ..BitConverter.GetBytes(0L)
-        ];
+        var builder = new TiffBuilder();
+        builder.SetTag(TiffTag.TagType.Width, (uint)size.Width);
+        builder.SetTag(TiffTag.TagType.Height, (uint)size.Height);
+        builder.SetTag(TiffTag.TagType.BitsPerSample, [0x08, 0x08, 0x08]);
+        builder.SetTag(TiffTag.TagType.Compression, 0x08);
+        builder.SetTag(TiffTag.TagType.PhotometricInterpolation, 0x02);
+        builder.SetTag(TiffTag.TagType.ImageDescription, mazeId.ToString());
+        builder.SetTag(TiffTag.TagType.StripOffsets, 0L);
+        builder.SetTag(TiffTag.TagType.SamplesPerPixel, 0x03);
+        builder.SetTag(TiffTag.TagType.RowsPerStrip, (uint)size.Width);
+        builder.SetTag(TiffTag.TagType.StripByteCount, 0L);
+        builder.SetTag(TiffTag.TagType.MinimumSampleValue, [0, 0, 0]);
+        builder.SetTag(TiffTag.TagType.MaximumSampleValue, [0xFF, 0xFF, 0xFF]);
+        builder.SetTag(TiffTag.TagType.PlanarConfiguration, 0x01);
+        builder.SetTag(TiffTag.TagType.SampleFormat, [0x01, 0x01, 0x01]);
+        var header = builder.Build();
 
         store.Write(0, header);
         store.Write<byte>(MazeIdOffset, [..Encoding.ASCII.GetBytes(mazeId.ToString()), 0x00]);
