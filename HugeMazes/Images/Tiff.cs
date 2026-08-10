@@ -8,7 +8,8 @@ namespace HugeMazes.Images;
 // Based on https://paulbourke.net/dataformats/tiff/
 public static class Tiff
 {
-    public static byte[] FixedHeader(long tagCount)
+    public const int HeaderLength = 16;
+    public static byte[] Header(long directoryOffset)
     {
         var magic = BitConverter.IsLittleEndian ? (byte)0x49 : (byte)0x4D;
         return [
@@ -18,8 +19,7 @@ public static class Tiff
             ..BitConverter.GetBytes((ushort)0x08),
             0x00,
             0x00,
-            ..BitConverter.GetBytes(16L),
-            ..BitConverter.GetBytes(tagCount)];
+            ..BitConverter.GetBytes(directoryOffset)];
     }
 
     public static byte[] Tag(TagType type, uint value) => Tag(type, [value]);
