@@ -75,7 +75,7 @@ public static class Tiff
 
     public static byte[] GetColorMapBytes(MazeColor[] palette) => [..MemoryMarshal.AsBytes(GetColorMap(palette))];
 
-    private static ushort[] GetColorMap(MazeColor[] palette)
+    public static ushort[] GetColorMap(MazeColor[] palette)
     {
         var reds = new ushort[palette.Length];
         var greens = new ushort[palette.Length];

@@ -7,20 +7,27 @@ using HugeMazes.Structures;
 namespace HugeMazes.Images;
 
 // Based on https://paulbourke.net/dataformats/tiff/
-public class TiffIndexedImage(IStore store, Guid mazeId, MazeSize size, MazeColor[] palette) : Storable(store, false), IImage<byte>
+public class TiffIndexedImage : Storable, IImage<byte>
 {
     public const int PaletteSize = 256;
-    private static readonly long MazeIdOffset = Tiff.HeaderLength + Tiff.DirectoryLength(11);
-    private const long MazeIdLength = 37;
-    private static readonly long PaletteOffset = MazeIdOffset + MazeIdLength;
-    private const long PaletteCount = PaletteSize * 3;
-    private const long PaletteLength = PaletteCount * sizeof(ushort);
-    private static readonly long ArrayOffset = PaletteOffset + PaletteLength;
 
-    private readonly LongArray<byte> array = new(store.Offset(ArrayOffset - sizeof(long), true), size.Area, true);
+    private readonly LongArray<byte> array;
+    private readonly Guid mazeId;
+    private readonly MazeSize size;
+    private readonly MazeColor[] palette;
+    private TiffBuilder builder;
     private bool written;
 
-    public override long Extent => array.Extent + ArrayOffset;
+    public TiffIndexedImage(IStore store, Guid mazeId, MazeSize size, MazeColor[] palette) : base(store, false)
+    {
+        this.mazeId = mazeId;
+        this.size = size;
+        this.palette = palette;
+        builder = Build();
+        array = new(store.Offset(builder.Length - sizeof(long), true), size.Area, true);
+    }
+
+    public override long Extent => array.Extent + builder.Length;
     public Guid MazeId => mazeId;
     public MazeSize Size => size;
     public int Width => size.Width;
@@ -55,32 +62,31 @@ public class TiffIndexedImage(IStore store, Guid mazeId, MazeSize size, MazeColo
 
         array.Write();
 
-        var deflatedLength = StoreDeflater.Deflate(store.Offset(ArrayOffset, true));
+        var deflatedLength = StoreDeflater.Deflate(store.Offset(builder.Length, true));
 
-        var mazeIdBytes = Tiff.GetAsciiBytes(mazeId.ToString());
-
-        store.Write<byte>(0, [
-            ..Tiff.Header,
-            ..Tiff.Directory([
-                Tiff.Tag(Tiff.TagType.Width, (uint)size.Width),
-                Tiff.Tag(Tiff.TagType.Height, (uint)size.Height),
-                Tiff.Tag(Tiff.TagType.BitsPerSample, 0x08),
-                Tiff.Tag(Tiff.TagType.Compression, 0x08),
-                Tiff.Tag(Tiff.TagType.PhotometricInterpolation, 0x03),
-                Tiff.Tag(Tiff.TagType.ImageDescription, Tiff.ValueType.Ascii, mazeIdBytes.Length - 1, MazeIdOffset),
-                Tiff.Tag(Tiff.TagType.StripOffsets, (ulong)ArrayOffset),
-                Tiff.Tag(Tiff.TagType.RowsPerStrip, (uint)size.Width),
-                Tiff.Tag(Tiff.TagType.StripByteCount, (ulong)deflatedLength),
-                Tiff.Tag(Tiff.TagType.PlanarConfiguration, 0x01),
-                //XResolution
-                //YResolution
-                //ResolutionUnit
-                Tiff.Tag(Tiff.TagType.ColorMap, Tiff.ValueType.Short, PaletteCount, PaletteOffset)
-            ]),
-            ..mazeIdBytes,
-            ..Tiff.GetColorMapBytes(palette.Extend(PaletteSize))
-        ]);
+        builder.Set(Tiff.TagType.StripByteCount, (ulong)deflatedLength);
+        store.Write<byte>(0, builder.Build());
     }
 
+    private TiffBuilder Build()
+    {
+        var builder = new TiffBuilder();
+        builder.Set(Tiff.TagType.Width, (uint)size.Width);
+        builder.Set(Tiff.TagType.Height, (uint)size.Height);
+        builder.Set(Tiff.TagType.BitsPerSample, 0x08);
+        builder.Set(Tiff.TagType.Compression, 0x08);
+        builder.Set(Tiff.TagType.PhotometricInterpolation, 0x03);
+        builder.Set(Tiff.TagType.ImageDescription, mazeId.ToString());
+        builder.Set(Tiff.TagType.StripOffsets, (ulong)0);
+        builder.Set(Tiff.TagType.RowsPerStrip, (uint)size.Width);
+        builder.Set(Tiff.TagType.StripByteCount, (ulong)0);
+        builder.Set(Tiff.TagType.PlanarConfiguration, 0x01);
+        //XResolution
+        //YResolution
+        //ResolutionUnit
+        builder.Set(Tiff.TagType.ColorMap, Tiff.GetColorMap(palette.Extend(PaletteSize)));
+        builder.Set(Tiff.TagType.StripOffsets, (ulong)builder.Length);
+        return builder;
+    }
 
 }
