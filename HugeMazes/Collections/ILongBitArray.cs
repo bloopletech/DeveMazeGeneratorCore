@@ -5,9 +5,11 @@ namespace HugeMazes.Collections;
 public interface ILongBitArray : IEnumerable<bool>
 {
     long Length { get; }
+    int ChunkCount { get; }
     bool this[long index] { get; set; }
     bool IsFixedSize { get; }
     bool IsReadOnly { get; }
+    BitSpan GetChunk(int index);
     void Clear();
     bool Peek();
     ILongBitArray Clone();

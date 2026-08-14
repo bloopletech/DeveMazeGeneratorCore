@@ -28,6 +28,7 @@ public class LongArray<T> : Storable, ILongArray<T> where T : struct
 
     public override long Extent => chunks[^1].EndOffset;
     public long Length => length;
+    public int ChunkCount => chunks.Length;
     public bool IsReadOnly => false;
     public bool IsFixedSize => true;
 
@@ -53,6 +54,8 @@ public class LongArray<T> : Storable, ILongArray<T> where T : struct
         var (chunk, chunkOffset) = Math.DivRem((ulong)index, (ulong)ChunkSize);
         return ((int)chunk, (int)chunkOffset);
     }
+
+    public Span<T> GetChunk(int index) => chunks[index].Array;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Clear()

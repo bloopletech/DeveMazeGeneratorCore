@@ -22,6 +22,7 @@ public class LongList<T> : Storable, ILongList<T> where T : struct
 
     public override long Extent => chunks[^1].EndOffset;
     public long Count => chunks[^1].End;
+    public int ChunkCount => chunks.Count;
     public bool IsReadOnly => false;
     public bool IsFixedSize => false;
 
@@ -57,6 +58,9 @@ public class LongList<T> : Storable, ILongList<T> where T : struct
     {
         if(chunks[^1].Count == 0 && chunks.Count > 1) chunks.PopIgnore();
     }
+
+    // DO NOT add or remove items from the returned chunk or any following chunks while holding the span
+    public Span<T> GetChunk(int index) => CollectionsMarshal.AsSpan(chunks[index].List);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Add(T item)

@@ -5,9 +5,11 @@ namespace HugeMazes.Collections;
 public interface ILongList<T> : IEnumerable<T> where T : struct
 {
     long Count { get; }
+    int ChunkCount { get; }
     T this[long index] { get; set; }
     bool IsFixedSize { get; }
     bool IsReadOnly { get; }
+    Span<T> GetChunk(int index);
     void Add(T item);
     void Clear();
     bool Contains(T item);

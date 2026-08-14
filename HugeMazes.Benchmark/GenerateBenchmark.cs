@@ -1,5 +1,5 @@
 using BenchmarkDotNet.Attributes;
-using HugeMazes.Benchmark.Support;
+//using HugeMazes.Benchmark.Support;
 
 namespace HugeMazes.Benchmark;
 
@@ -9,7 +9,7 @@ public class GenerateBenchmark : BaseBenchmark
     [Benchmark(Baseline = true)]
     public void Generate()
     {
-        HugeMazes.BenchmarkLongBitGrid();
+        HugeMazes.HugeMazes.BenchmarkLongBitGrid();
     }
 
     //[Benchmark]

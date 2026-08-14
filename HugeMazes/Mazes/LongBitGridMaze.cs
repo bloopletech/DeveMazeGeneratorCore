@@ -47,6 +47,8 @@ public class LongBitGridMaze : Storable, IMaze
         return x + ((long)y * size.Width);
     }
 
+
+
     public override void Read()
     {
         (id, size) = store.Read<Header>(0);

@@ -1,8 +1,11 @@
-using System.Collections;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using HugeMazes.Extensions;
 using HugeMazes.IO;
+using System.Collections;
+using System.Collections.ObjectModel;
+using System.Drawing;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using static HugeMazes.Structures.RenderPalette;
 
 namespace HugeMazes.Collections;
 
@@ -27,6 +30,7 @@ public class LongBitArray : Storable, ILongBitArray
 
     public override long Extent => chunks[^1].EndOffset;
     public long Length => length;
+    public int ChunkCount => chunks.Length;
     public bool IsReadOnly => false;
     public bool IsFixedSize => true;
 
@@ -52,6 +56,8 @@ public class LongBitArray : Storable, ILongBitArray
         var (chunk, chunkOffset) = Math.DivRem((ulong)index, ChunkSize);
         return ((int)chunk, (int)chunkOffset);
     }
+
+    public BitSpan GetChunk(int index) => new(chunks[index].Array);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Clear()
@@ -155,5 +161,69 @@ public class LongBitArray : Storable, ILongBitArray
                 start += stride;
             }
         }
+    }
+
+    public BitSpan[] Slice(long start, long length)
+    {
+        var (startChunkIndex, startChunkOffset) = Index(start);
+        var (endChunkIndex, endChunkOffset) = Index(start + length);
+        var spans = new List<BitSpan>();
+        spans.Add(new())
+    }
+
+    public class LongBitSpan
+
+
+    /// <summary>Gets an enumerator for this span.</summary>
+    public Enumerator GetEnumerator() => new Enumerator(this);
+
+    public struct ChunkSliceEnumerator : IEnumerator<T>
+    {
+        /// <summary>The span being enumerated.</summary>
+        private readonly Span<T> _span;
+        /// <summary>The next index to yield.</summary>
+        private int _index;
+
+        /// <summary>Initialize the enumerator.</summary>
+        /// <param name="span">The span to enumerate.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal Enumerator(Span<T> span)
+        {
+            _span = span;
+            _index = -1;
+        }
+
+        /// <summary>Advances the enumerator to the next element of the span.</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool MoveNext()
+        {
+            int index = _index + 1;
+            if(index < _span.Length)
+            {
+                _index = index;
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>Gets the element at the current position of the enumerator.</summary>
+        public Span< Current
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => ref _span[_index];
+        }
+
+        /// <inheritdoc />
+        T IEnumerator<T>.Current => Current;
+
+        /// <inheritdoc />
+        object IEnumerator.Current => Current!;
+
+        /// <inheritdoc />
+        void IEnumerator.Reset() => _index = -1;
+
+        /// <inheritdoc />
+        void IDisposable.Dispose() { }
     }
 }

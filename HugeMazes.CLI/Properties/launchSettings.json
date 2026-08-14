@@ -2,7 +2,7 @@
   "profiles": {
     "HugeMazes.CLI": {
       "commandName": "Project",
-      "commandLineArgs": "1024"
+      "commandLineArgs": "16384"
     }
   }
 }
