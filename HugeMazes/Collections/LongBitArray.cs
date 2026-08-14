@@ -57,7 +57,7 @@ public class LongBitArray : Storable, ILongBitArray
         return ((int)chunk, (int)chunkOffset);
     }
 
-    public BitSpan GetChunk(int index) => new(chunks[index].Array);
+    public ChunkBitSpan GetChunk(int index) => new(chunks[index].Array);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Clear()
@@ -118,6 +118,7 @@ public class LongBitArray : Storable, ILongBitArray
 
         public long LastUsedAt { get; private set; }
 
+        public int Count => count;
         public long EndOffset => offset + count.DivCeil(8);
 
         private BitArray Load()
@@ -163,11 +164,84 @@ public class LongBitArray : Storable, ILongBitArray
         }
     }
 
-    public BitSpan[] Slice(long start, long length)
+    // Based on https://github.com/dotnet/runtime/blob/691fd960eb500743b4be71373b11b2263bdbc318/src/libraries/System.Private.CoreLib/src/System/Span.cs
+    public readonly struct ChunkBitSpan : IEnumerable<bool>
+    {
+        private readonly Chunk _chunk;
+        private readonly int _start;
+        private readonly int _length;
+
+        private ChunkBitSpan(Chunk chunk)
+        {
+            _chunk = chunk;
+            _start = 0;
+            _length = chunk.Count;
+        }
+
+        private ChunkBitSpan(Chunk chunk, int start)
+        {
+            if((uint)start > (uint)chunk.Count)
+            {
+                throw new ArgumentOutOfRangeException(null, "0 <= start <= chunk.Count");
+            }
+
+            _chunk = chunk;
+            _start = start;
+            _length = chunk.Count - start;
+        }
+
+        private ChunkBitSpan(Chunk chunk, int start, int length)
+        {
+            if((uint)start + (uint)length > (uint)chunk.Count)
+            {
+                throw new ArgumentOutOfRangeException(null, "0 <= start <= length <= chunk.Count");
+            }
+
+            _chunk = chunk;
+            _start = start;
+            _length = length;
+        }
+
+        public bool this[int index]
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _chunk.Array[index + _start];
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set => _chunk.Array[index + _start] = value;
+        }
+
+        public int Length => _length;
+        public bool IsEmpty => _length == 0;
+
+        public IEnumerator<bool> GetEnumerator()
+        {
+            for(var i = 0; i < _length; i++) yield return this[i];
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        public ChunkBitSpan Slice(int start)
+        {
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(start, _length);
+            return new(_chunk, _start + start, _length - start);
+        }
+
+        public ChunkBitSpan Slice(int start, int length)
+        {
+            if((uint)start + (uint)length > (uint)_length)
+            {
+                throw new ArgumentOutOfRangeException(null, "start <= length <= Length");
+            }
+
+            return new(_chunk, _start + start, length);
+        }
+    }
+
+    public ChunkBitSpan[] Slice(long start, long length)
     {
         var (startChunkIndex, startChunkOffset) = Index(start);
         var (endChunkIndex, endChunkOffset) = Index(start + length);
-        var spans = new List<BitSpan>();
+        var spans = new List<ChunkBitSpan>();
         spans.Add(new())
     }
 
