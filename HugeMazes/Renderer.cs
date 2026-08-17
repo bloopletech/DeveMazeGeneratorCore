@@ -14,9 +14,12 @@ public static class Renderer
 
         for(int y = 0; y < image.Height; y++)
         {
+            var sourceRow = maze.GetRowSpan(y);
+            var destinationRow = image.GetRowSpan(y);
+            
             for(int x = 0; x < image.Width; x++)
             {
-                image[x, y] = maze[x, y] ? RenderPalette.Index.Background : RenderPalette.Index.Wall;
+                destinationRow[x] = sourceRow[x] ? RenderPalette.Index.Background : RenderPalette.Index.Wall;
             }
         }
 
@@ -32,9 +35,12 @@ public static class Renderer
 
         for(int y = 0; y < image.Height; y++)
         {
+            var sourceRow = maze.GetRowSpan(y);
+            var destinationRow = image.GetRowSpan(y);
+
             for(int x = 0; x < image.Width; x++)
             {
-                image[x, y] = maze[x, y] ? palette.Background : palette.Wall;
+                destinationRow[x] = sourceRow[x] ? palette.Background : palette.Wall;
             }
         }
 

@@ -57,87 +57,33 @@ public class LongBitArray : Storable, ILongBitArray
         return ((int)chunk, (int)chunkOffset);
     }
 
-    //0 1 2 3 4 5 6 7 8 9
-    private (int, int, int)[] RangeIndexes(long start, long length)
+    private ChunkRange[] RangeIndexes(long start, long length)
     {
         var end = start + length;
+        var ranges = new List<ChunkRange>();
 
-        var ranges = new List<(int, long, long)>();
-
-        var ci = 0;
-        while()
-        var x = 0L;
-        while(true)
-        {
-            var chunk = chunks[ci];
-
-            chunkend = 10
-            chunkend = 20
-            end = 7
-            chunk range = 20 to 30
-            start = 23
-            end = 27
-
-            // prev chunk start = 50
-            // chunk start = 100
-            // start = 110
-            // next chunk start = 150
-            if(start >= chunk.Start >=  && chunk.End <= end)
-            {
-                Math.Min(0, start - chunk.Start)
-                    Math.Max(ChunkSize, end - chunk.End)
-            }
-
-            x += ChunkSize;
-            ci++;
-        }
-
-        var consumed = 0L;
         for(var i = 0; i < chunks.Length; i++)
         {
             var chunk = chunks[i];
-            if(start < chunk.Start) continue;
-            if(end > chunk.End) continue;
-
-
-
-
-
-
-
-
-
-
-            ranges.Add(i, chunk.Start, chunk.End)
-
-        }
-        
-        var current = start;
-        var chunkIndex = 0L;
-        while(current >= ((chunkIndex + 1) * ChunkSize)) chunkIndex++;
-        while(current <= end)
-        {
-            var chunkEnd = Math.Min(end - current, ChunkSize);
-            ranges.Add()
+            if(start <= chunk.End && end >= chunk.Start)
+            {
+                var chunkStartIndex = Math.Min(0, start - chunk.Start);
+                var chunkEndIndex = Math.Max(chunk.Count, end - chunk.Start);
+                var chunkLength = chunkEndIndex - chunkStartIndex;
+                ranges.Add(new ChunkRange(i, (int)chunkStartIndex, (int)chunkLength));
+            }
         }
 
-
-        var (chunkIndex, chunkOffset) = Index(start);
-        var remaining = chunkOffset + length;
-        while(remaining >= ChunkSize)
-        {
-            ranges.Add((chunkIndex, chunkOffset, ChunkSize - chunkOffset));
-            chunkIndex++;
-            chunkOffset = 0;
-
-        }
-        var (endChunkIndex, endChunkOffset) = Index(end);
-        if(startChunkIndex == endChunkIndex) return [(startChunkIndex, startChunkOffset, startChunkOffset + (int)length)];
-
+        return [..ranges];
     }
 
+    public ChunkBitSpan GetChunkSpan(int index) => new(chunks[index]);
 
-    public ChunkBitSpan GetChunk(int index) => new(chunks[index].Array);
+    public ChunkBitSpan[] GetChunkSpans(long start, long length)
+    {
+        var ranges = RangeIndexes(start, length);
+        return [..ranges.Select((range) => chunks[range.ChunkIndex].AsSpan(range.Start, range.Length))];
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Clear()
@@ -191,7 +137,7 @@ public class LongBitArray : Storable, ILongBitArray
         return result;
     }
 
-    private class Chunk(LongBitArray owner, long start, int count, long offset, bool read)
+    public class Chunk(LongBitArray owner, long start, int count, long offset, bool read)
     {
         private BitArray? array;
         public BitArray Array => array ??= Load();
@@ -223,6 +169,10 @@ public class LongBitArray : Storable, ILongBitArray
             LastUsedAt = 0;
         }
 
+        public ChunkBitSpan AsSpan() => new(this);
+        public ChunkBitSpan AsSpan(int start) => new(this, start);
+        public ChunkBitSpan AsSpan(int start, int length) => new(this, start, length);
+
         public static IEnumerable<Chunk> Produce(LongBitArray owner, long count, int chunkSize, long offset, bool read)
         {
             if(count == 0)
@@ -246,21 +196,23 @@ public class LongBitArray : Storable, ILongBitArray
         }
     }
 
+    public readonly record struct ChunkRange(int ChunkIndex, int Start, int Length);
+
     // Based on https://github.com/dotnet/runtime/blob/691fd960eb500743b4be71373b11b2263bdbc318/src/libraries/System.Private.CoreLib/src/System/Span.cs
-    public readonly struct ChunkBitSpan : IEnumerable<bool>
+    public struct ChunkBitSpan : IEnumerable<bool>
     {
         private readonly Chunk _chunk;
         private readonly int _start;
         private readonly int _length;
 
-        private ChunkBitSpan(Chunk chunk)
+        public ChunkBitSpan(Chunk chunk)
         {
             _chunk = chunk;
             _start = 0;
             _length = chunk.Count;
         }
 
-        private ChunkBitSpan(Chunk chunk, int start)
+        public ChunkBitSpan(Chunk chunk, int start)
         {
             if((uint)start > (uint)chunk.Count)
             {
@@ -272,7 +224,7 @@ public class LongBitArray : Storable, ILongBitArray
             _length = chunk.Count - start;
         }
 
-        private ChunkBitSpan(Chunk chunk, int start, int length)
+        public ChunkBitSpan(Chunk chunk, int start, int length)
         {
             if((uint)start + (uint)length > (uint)chunk.Count)
             {
@@ -317,16 +269,6 @@ public class LongBitArray : Storable, ILongBitArray
 
             return new(_chunk, _start + start, length);
         }
-    }
-
-
-    public ChunkBitSpan[] Slice(long start, long length)
-    {
-        var (startChunkIndex, startChunkOffset) = Index(start);
-        var (endChunkIndex, endChunkOffset) = Index(start + length);
-
-        var spans = new List<ChunkBitSpan>();
-        spans.Add(new())
     }
 
     public class LongBitSpan
